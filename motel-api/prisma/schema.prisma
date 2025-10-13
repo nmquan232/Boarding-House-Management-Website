@@ -1,0 +1,152 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         Int         @id @default(autoincrement())
+  name       String      @db.VarChar(100)
+  email      String      @unique @db.VarChar(256)
+  password   String      @db.VarChar(45)
+  apartments Apartment[]
+}
+
+model Admin {
+  id             Int     @id @default(autoincrement())
+  admin_uuid     String  @unique @db.VarChar(64)
+  admin_login_id String  @unique @db.VarChar(64)
+  email          String? @db.VarChar(256)
+}
+
+model Apartment {
+  id          Int             @id @default(autoincrement())
+  user_id     Int
+  name        String          @db.VarChar(45)
+  province_id String?         @db.VarChar(256)
+  district_id String?         @db.VarChar(256)
+  ward_id     String?         @db.VarChar(256)
+  address     String?         @db.VarChar(256)
+  user        User            @relation(fields: [user_id], references: [id])
+  rooms       ApartmentRoom[]
+}
+
+model ApartmentRoom {
+  id                   Int                 @id @default(autoincrement())
+  apartment_id         Int
+  room_number          String              @db.VarChar(45)
+  default_price        BigInt
+  max_tenant           Int?
+  apartment            Apartment           @relation(fields: [apartment_id], references: [id])
+  electricity_usages   ElectricityUsage[]
+  room_fee_collections RoomFeeCollection[]
+  contracts            TenantContract[]
+  water_usages         WaterUsage[]
+}
+
+model Tenant {
+  id                   Int                 @id @default(autoincrement())
+  name                 String              @db.VarChar(45)
+  tel                  String?             @db.VarChar(45)
+  identity_card_number String?             @db.VarChar(45)
+  email                String?             @db.VarChar(256)
+  room_fee_collections RoomFeeCollection[]
+  contracts            TenantContract[]
+}
+
+model TenantContract {
+  id                       Int                   @id @default(autoincrement())
+  apartment_room_id        Int
+  tenant_id                Int
+  pay_period               Int?
+  price                    BigInt
+  electricity_pay_type_id  Int?
+  electricity_price        BigInt?
+  electricity_num_start    Int?
+  water_pay_type_id        Int?
+  water_price              BigInt?
+  water_number_start       Int?
+  number_of_tenant_current Int?
+  note                     String?
+  start_date               DateTime
+  end_date                 DateTime?
+  contract_monthly_costs   ContractMonthlyCost[]
+  room_fee_collections     RoomFeeCollection[]
+  apartment_room           ApartmentRoom         @relation(fields: [apartment_room_id], references: [id])
+  tenant                   Tenant                @relation(fields: [tenant_id], references: [id])
+}
+
+model MonthlyCost {
+  id                     Int                   @id @default(autoincrement())
+  name                   String                @db.VarChar(45)
+  contract_monthly_costs ContractMonthlyCost[]
+}
+
+model ContractMonthlyCost {
+  id                 Int            @id @default(autoincrement())
+  tenant_contract_id Int
+  monthly_cost_id    Int
+  pay_type           Int?
+  price              BigInt
+  monthly_cost       MonthlyCost    @relation(fields: [monthly_cost_id], references: [id])
+  tenant_contract    TenantContract @relation(fields: [tenant_contract_id], references: [id])
+}
+
+model ElectricityUsage {
+  id                Int           @id @default(autoincrement())
+  apartment_room_id Int
+  usage_number      Int
+  input_date        DateTime
+  apartment_room    ApartmentRoom @relation(fields: [apartment_room_id], references: [id])
+}
+
+model WaterUsage {
+  id                Int           @id @default(autoincrement())
+  apartment_room_id Int
+  usage_number      Int
+  input_date        DateTime
+  apartment_room    ApartmentRoom @relation(fields: [apartment_room_id], references: [id])
+}
+
+model RoomFeeCollection {
+  id                     Int                        @id @default(autoincrement())
+  tenant_contract_id     Int
+  apartment_room_id      Int
+  tenant_id              Int
+  electricity_num_before Int?
+  electricity_num_after  Int?
+  water_number_before    Int?
+  water_number_after     Int?
+  charge_date            DateTime?
+  total_debt             BigInt?
+  total_price            BigInt?
+  total_paid             BigInt?
+  fee_collection_uuid    String?                    @db.VarChar(64)
+  apartment_room         ApartmentRoom              @relation(fields: [apartment_room_id], references: [id])
+  tenant_contract        TenantContract             @relation(fields: [tenant_contract_id], references: [id])
+  tenant                 Tenant                     @relation(fields: [tenant_id], references: [id])
+  histories              RoomFeeCollectionHistory[]
+}
+
+model RoomFeeCollectionHistory {
+  id                     Int               @id @default(autoincrement())
+  room_fee_collection_id Int
+  paid_date              DateTime
+  price                  BigInt
+  room_fee_collection    RoomFeeCollection @relation(fields: [room_fee_collection_id], references: [id])
+}
+
+model Prefecture {
+  id            Int     @id @default(autoincrement())
+  ward_id       String? @db.VarChar(256)
+  ward_name     String? @db.VarChar(256)
+  ward_name_en  String? @db.VarChar(256)
+  ward_level    String? @db.VarChar(256)
+  district_id   String? @db.VarChar(256)
+  district_name String? @db.VarChar(256)
+  province_id   String? @db.VarChar(256)
+  province_name String? @db.VarChar(256)
+}
