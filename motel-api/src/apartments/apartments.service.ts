@@ -74,4 +74,31 @@ export class ApartmentsService {
     await this.prisma.apartment.delete({ where: { id } });
     return { ok: true };
   }
+
+  async getRooms(apartmentId: number, q = '', page = 1, take = 10) {
+  const where = {
+    apartment_id: apartmentId,
+    ...(q
+      ? {
+          room_number: {
+            contains: q,
+            mode: Prisma.QueryMode.insensitive, // ✅ dùng enum chứ không phải string
+          },
+        }
+      : {}),
+  };
+
+  const [items, total] = await this.prisma.$transaction([
+    this.prisma.apartmentRoom.findMany({
+      where,
+      skip: (page - 1) * take,
+      take,
+      orderBy: { id: 'desc' },
+    }),
+    this.prisma.apartmentRoom.count({ where }),
+  ]);
+
+  return { items, total, page, take, pages: Math.ceil(total / take) };
+}
+
 }

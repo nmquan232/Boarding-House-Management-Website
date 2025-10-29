@@ -1,58 +1,62 @@
-
-
-import {Body,Controller,Delete,Get,Param,ParseIntPipe,Post,Put,Query,UseGuards,} from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Body, UseGuards, Query, ParseIntPipe } from '@nestjs/common';
 import { RoomsService } from './rooms.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { User } from '../common/decorators/user.decorator';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { UpdateRoomDto } from './dto/update-room.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { User } from '../common/decorators/user.decorator';
 
 @UseGuards(JwtAuthGuard)
-@Controller()
+@Controller('rooms')
 export class RoomsController {
-  constructor(private service: RoomsService) {}
+  constructor(private readonly roomsService: RoomsService) {}
 
-  // GET /apartments/:apartmentId/rooms
-  @Get('apartments/:apartmentId/rooms')
-  list(
+  /** Lấy danh sách phòng theo apartment */
+  @Get(':id/rooms')
+  async list(
     @User() user: { userId: number },
-    @Param('apartmentId', ParseIntPipe) apartmentId: number,
+    @Param('id', ParseIntPipe) apartmentId: number,
     @Query('q') q?: string,
     @Query('page') page = '1',
     @Query('take') take = '10',
   ) {
-    return this.service.list(user.userId, apartmentId, q, Number(page), Number(take));
+    return this.roomsService.list(user.userId, apartmentId, q, Number(page), Number(take));
   }
 
-  // POST /apartments/:apartmentId/rooms
-  @Post('apartments/:apartmentId/rooms')
-  create(
+  /** Tạo phòng mới */
+  @Post(':id/rooms')
+  async create(
     @User() user: { userId: number },
-    @Param('apartmentId', ParseIntPipe) apartmentId: number,
+    @Param('id', ParseIntPipe) apartmentId: number,
     @Body() dto: CreateRoomDto,
   ) {
-    return this.service.create(user.userId, apartmentId, dto);
+    return this.roomsService.create(user.userId, apartmentId, dto);
   }
 
-  // GET /rooms/:id
-  @Get('rooms/:id')
-  detail(@User() user: { userId: number }, @Param('id', ParseIntPipe) id: number) {
-    return this.service.detail(user.userId, id);
-  }
-
-  // PUT /rooms/:id
-  @Put('rooms/:id')
-  update(
+  /** Chi tiết phòng */
+  @Get('rooms/:roomId')
+  async detail(
     @User() user: { userId: number },
-    @Param('id', ParseIntPipe) id: number,
+    @Param('roomId', ParseIntPipe) id: number,
+  ) {
+    return this.roomsService.detail(user.userId, id);
+  }
+
+  /** Cập nhật phòng */
+  @Put('rooms/:roomId')
+  async update(
+    @User() user: { userId: number },
+    @Param('roomId', ParseIntPipe) id: number,
     @Body() dto: UpdateRoomDto,
   ) {
-    return this.service.update(user.userId, id, dto);
+    return this.roomsService.update(user.userId, id, dto);
   }
 
-  // DELETE /rooms/:id
-  @Delete('rooms/:id')
-  remove(@User() user: { userId: number }, @Param('id', ParseIntPipe) id: number) {
-    return this.service.remove(user.userId, id);
+  /** Xóa phòng */
+  @Delete('rooms/:roomId')
+  async remove(
+    @User() user: { userId: number },
+    @Param('roomId', ParseIntPipe) id: number,
+  ) {
+    return this.roomsService.remove(user.userId, id);
   }
 }

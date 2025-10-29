@@ -2,6 +2,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { PrismaService } from './prisma/prisma.service';
+import { BigIntSerializationInterceptor } from './common/interceptors/bigint.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -12,6 +13,17 @@ async function bootstrap() {
     forbidNonWhitelisted: true, // báo lỗi nếu gửi field thừa
     transform: true, // tự động chuyển type theo DTO
   }));
+
+  // ✅ BigInt -> number/string toàn cục
+  app.useGlobalInterceptors(new BigIntSerializationInterceptor());
+
+  // Bật CORS
+  app.enableCors({
+    origin: 'http://localhost:5173', // frontend
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    credentials: true, // nếu cần cookie/token
+  });
+
   const prisma = app.get(PrismaService);
   await prisma.enableShutdownHooks(app);
 

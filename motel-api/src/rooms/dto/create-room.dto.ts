@@ -1,15 +1,16 @@
-import { IsInt, IsOptional, IsString, MaxLength } from 'class-validator';
+// src/rooms/dto/create-room.dto.ts
+import { IsNotEmpty, IsOptional, IsInt, Min, IsNumberString } from 'class-validator';
 
 export class CreateRoomDto {
-  @IsString()
-  @MaxLength(45)
+  @IsNotEmpty({ message: 'Số phòng là bắt buộc' })
   room_number: string;
 
-  // BigInt trên Prisma => string/number đều được -> ta nhận string để an toàn số lớn
   @IsOptional()
-  default_price?: string; // FE có thể gửi "2500000"
+  @IsNumberString({}, { message: 'Giá mặc định phải là số' })
+  default_price?: string;
 
   @IsOptional()
-  @IsInt()
+  @IsInt({ message: 'Số người tối đa phải là số nguyên' })
+  @Min(1, { message: 'Số người tối đa phải >= 1' })
   max_tenant?: number;
 }
