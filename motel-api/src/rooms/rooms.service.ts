@@ -29,6 +29,7 @@ export class RoomsService {
     if (room.apartment.user_id !== userId) throw new ForbiddenException('Bạn không có quyền với phòng này');
     return room;
   }
+  
 
   /** Danh sách phòng theo apartment, có search + phân trang */
   async list(userId: number, apartmentId: number, q?: string, page = 1, take = 10) {

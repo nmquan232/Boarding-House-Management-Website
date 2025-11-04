@@ -1,4 +1,22 @@
-import { PartialType } from '@nestjs/mapped-types';
-import { CreateApartmentDto } from './create-apartment.dto';
+// src/apartments/dto/update-apartment.dto.ts
+import { IsOptional, IsString } from 'class-validator';
 
-export class UpdateApartmentDto extends PartialType(CreateApartmentDto) {}
+export class UpdateApartmentDto {
+  @IsOptional() @IsString()
+  name?: string;
+
+  @IsOptional() @IsString()
+  address?: string;        // gửi null thì đừng có key này (xem FE ở dưới)
+
+  @IsOptional() @IsString()
+  province_id?: string;
+
+  @IsOptional() @IsString()
+  district_id?: string;
+
+  @IsOptional() @IsString()
+  ward_id?: string;
+
+  @IsOptional() @IsString()
+  imagePath?: string;
+}

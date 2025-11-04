@@ -41,10 +41,13 @@ export class ApartmentsController {
   }
 
   @Get(':id/rooms')
-  getRooms(@Param('id', ParseIntPipe) id: number,@Query('q') q?: string,
-  @Query('page') page = '1',
-  @Query('take') take = '10',) {
-    return this.service.getRooms(id, q, Number(page), Number(take));
-
+  rooms(
+    @User() user: { userId: number },
+    @Param('id', ParseIntPipe) id: number,
+    @Query('q') q = '',
+    @Query('page') page = '1',
+    @Query('take') take = '10',
+  ) {
+    return this.service.getRooms(user.userId, id, q, Number(page), Number(take));
   }
 }

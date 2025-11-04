@@ -1,11 +1,12 @@
 import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateContractDto } from './dto/create-contract.dto';
 import { UpdateContractDto } from './dto/update-contract.dto';
 
 @Injectable()
 export class ContractsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   /** Đảm bảo room thuộc apartment của user */
   private async ensureRoomOwnedByUser(apartmentRoomId: number, userId: number) {
@@ -77,34 +78,39 @@ export class ContractsService {
   }
 
   /** Danh sách hợp đồng của user (theo apartment? room? — ở đây list toàn bộ thuộc user) */
-  async list(userId: number, page = 1, take = 10) {
-    const where = {
+
+  async list(userId: number, q?: string, page = 1, take = 10, tenantId?: number) {
+    const where: Prisma.TenantContractWhereInput = {
       apartment_room: { apartment: { user_id: userId } },
+      ...(tenantId ? { tenant_id: tenantId } : {}),
+      ...(q
+        ? {
+          OR: [
+            { tenant: { name: { contains: q, mode: 'insensitive' } } },
+            { apartment_room: { room_number: { contains: q, mode: 'insensitive' } } },
+            { apartment_room: { apartment: { name: { contains: q, mode: 'insensitive' } } } },
+          ],
+        }
+        : {}),
     };
+
     const [items, total] = await this.prisma.$transaction([
       this.prisma.tenantContract.findMany({
         where,
+        include: {
+          tenant: true,
+          apartment_room: { include: { apartment: true } },
+        },
         orderBy: { id: 'desc' },
         skip: (page - 1) * take,
         take,
-        include: {
-          apartment_room: { include: { apartment: true } },
-          tenant: true,
-        },
       }),
       this.prisma.tenantContract.count({ where }),
     ]);
 
-    // BigInt -> string
-    const itemsSafe = items.map((it) => ({
-      ...it,
-      price: it.price.toString(),
-      electricity_price: it.electricity_price?.toString() ?? null,
-      water_price: it.water_price?.toString() ?? null,
-    }));
-
-    return { items: itemsSafe, total, page, take, pages: Math.ceil(total / take) };
+    return { items, total, page, take, pages: Math.max(1, Math.ceil(total / take)) };
   }
+
 
   async detail(userId: number, id: number) {
     const c = await this.getContractOwnedByUser(id, userId);
