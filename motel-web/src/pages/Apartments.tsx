@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import Modal from '../components/Modal';
 import Confirm from '../components/Confirm';
+import { useNavigate } from 'react-router-dom';
 import ImageUploader from '../components/ImageUploader';
 import type { Apartment, PrefRow } from '../api/apartmentsApi';
 import {
@@ -24,9 +25,11 @@ export default function Apartments() {
   const [total, setTotal] = useState(0);                    // tổng số tòa nhà
   const pages = Math.max(1, Math.ceil(total / take));        // tổng số trang
   const [loading, setLoading] = useState(false);             // trạng thái đang tải
+  const navigate = useNavigate();
+  
 
   // ==== Danh sách địa phương (từ bảng Prefecture, chỉ gọi 1 lần) ====
-  const [prefData, setPrefData] = useState<PrefRow[]>([]);
+  //  const [prefData, setPrefData] = useState<PrefRow[]>([]);
 
   // ==== Quản lý modal thêm/sửa tòa nhà ====
   const [openModal, setOpenModal] = useState(false);         // bật/tắt modal
@@ -40,39 +43,39 @@ export default function Apartments() {
   // ==== Lấy danh sách tỉnh / quận / phường từ dữ liệu Prefecture (lọc trên FE) ====
 
   // Danh sách tỉnh/thành phố (unique)
-  const provinces: Option[] = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const r of prefData)
-      if (r.province_id && r.province_name && !map.has(r.province_id))
-        map.set(r.province_id, r.province_name);
-    return Array.from(map, ([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
-  }, [prefData]);
+  // const provinces: Option[] = useMemo(() => {
+  //   const map = new Map<string, string>();
+  //   for (const r of prefData)
+  //     if (r.province_id && r.province_name && !map.has(r.province_id))
+  //       map.set(r.province_id, r.province_name);
+  //   return Array.from(map, ([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+  // }, [prefData]);
 
   // Danh sách quận/huyện theo tỉnh đã chọn
-  const districts: Option[] = useMemo(() => {
-    if (!form.province_id) return [];
-    const map = new Map<string, string>();
-    for (const r of prefData) {
-      if (r.province_id === form.province_id && r.district_id && r.district_name && !map.has(r.district_id))
-        map.set(r.district_id, r.district_name);
-    }
-    return Array.from(map, ([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
-  }, [prefData, form.province_id]);
+  // const districts: Option[] = useMemo(() => {
+  //   if (!form.province_id) return [];
+  //   const map = new Map<string, string>();
+  //   for (const r of prefData) {
+  //     if (r.province_id === form.province_id && r.district_id && r.district_name && !map.has(r.district_id))
+  //       map.set(r.district_id, r.district_name);
+  //   }
+  //   return Array.from(map, ([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+  // }, [prefData, form.province_id]);
 
-  // Danh sách xã/phường theo quận đã chọn
-  const wards: Option[] = useMemo(() => {
-    if (!form.district_id) return [];
-    const map = new Map<string, string>();
-    for (const r of prefData) {
-      if (r.district_id === form.district_id && r.ward_id && r.ward_name && !map.has(r.ward_id))
-        map.set(r.ward_id, r.ward_name);
-    }
-    return Array.from(map, ([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
-  }, [prefData, form.district_id]);
+  // // Danh sách xã/phường theo quận đã chọn
+  // const wards: Option[] = useMemo(() => {
+  //   if (!form.district_id) return [];
+  //   const map = new Map<string, string>();
+  //   for (const r of prefData) {
+  //     if (r.district_id === form.district_id && r.ward_id && r.ward_name && !map.has(r.ward_id))
+  //       map.set(r.ward_id, r.ward_name);
+  //   }
+  //   return Array.from(map, ([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+  // }, [prefData, form.district_id]);
 
   // Hàm lấy tên hiển thị (ví dụ từ id → tên tỉnh)
-  const nameOf = (id: string | null | undefined, list: Option[]) =>
-    (id && list.find(x => x.id === id)?.name) || '';
+  // const nameOf = (id: string | null | undefined, list: Option[]) =>
+  //   (id && list.find(x => x.id === id)?.name) || '';
 
   // ==== Gọi API lấy danh sách tòa nhà ====
   const loadList = async () => {
@@ -95,16 +98,16 @@ export default function Apartments() {
   }, [q, page]);
 
   // Lấy danh sách địa phương 1 lần duy nhất
-  useEffect(() => {
-    (async () => {
-      try {
-        const data = await fetchPrefectures();
-        setPrefData(data);
-      } catch {
-        toast.error('Không tải được danh sách địa phương');
-      }
-    })();
-  }, []);
+  // useEffect(() => {
+  //   (async () => {
+  //     try {
+  //       const data = await fetchPrefectures();
+  //       setPrefData(data);
+  //     } catch {
+  //       toast.error('Không tải được danh sách địa phương');
+  //     }
+  //   })();
+  // }, []);
 
   // ==== Các hành động CRUD ====
 
@@ -122,9 +125,9 @@ export default function Apartments() {
       id: ap.id,
       name: ap.name,
       address: ap.address ?? '',
-      province_id: ap.province_id ?? null,
-      district_id: ap.district_id ?? null,
-      ward_id: ap.ward_id ?? null,
+      province_id: ap.province_id ?? '',
+      district_id: ap.district_id ?? '',
+      ward_id: ap.ward_id ?? '',
       imagePath: ap.imagePath ?? null,
     });
     setOpenModal(true);
@@ -189,12 +192,12 @@ export default function Apartments() {
   };
 
   // ==== Xử lý chọn tỉnh / quận / phường trong form ====
-  const onProvince = (val: string) =>
-    setForm(f => ({ ...f, province_id: val || null, district_id: null, ward_id: null }));
-  const onDistrict = (val: string) =>
-    setForm(f => ({ ...f, district_id: val || null, ward_id: null }));
-  const onWard = (val: string) =>
-    setForm(f => ({ ...f, ward_id: val || null }));
+  // const onProvince = (val: string) =>
+  //   setForm(f => ({ ...f, province_id: val || null, district_id: null, ward_id: null }));
+  // const onDistrict = (val: string) =>
+  //   setForm(f => ({ ...f, district_id: val || null, ward_id: null }));
+  // const onWard = (val: string) =>
+  //   setForm(f => ({ ...f, ward_id: val || null }));
 
   // ==== Xuất file CSV (chức năng phụ) ====
   const exportCsv = () => {
@@ -255,7 +258,7 @@ export default function Apartments() {
               <th className="p-3 text-center w-40">Thao tác</th>
             </tr>
           </thead>
-          <tbody>
+          {/* <tbody>
             {loading ? (
               <tr><td colSpan={8} className="text-center p-4 text-gray-500">Đang tải...</td></tr>
             ) : items.length === 0 ? (
@@ -266,9 +269,9 @@ export default function Apartments() {
                   <td className="p-3">{ap.id}</td>
                   <td className="p-3 font-medium text-gray-800">{ap.name}</td>
                   <td className="p-3 text-gray-600">{ap.address}</td>
-                  <td className="p-3 text-gray-600">{nameOf(ap.province_id, provinces)}</td>
-                  <td className="p-3 text-gray-600">{nameOf(ap.district_id, districts)}</td>
-                  <td className="p-3 text-gray-600">{nameOf(ap.ward_id, wards)}</td>
+                  <td className="p-3 text-gray-600">{ap.province_id}</td>
+                  <td className="p-3 text-gray-600">{ap.district_id}</td>
+                  <td className="p-3 text-gray-600">{ap.ward_id}</td>
                   <td className="p-3">
                     {ap.imagePath ? <img src={ap.imagePath} className="h-10 rounded" /> : <span className="text-xs text-gray-400">—</span>}
                   </td>
@@ -279,7 +282,53 @@ export default function Apartments() {
                 </tr>
               ))
             )}
+          </tbody> */}
+          <tbody>
+            {items.map((ap, i) => (
+              <tr
+                key={ap.id}
+                className={`${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition cursor-pointer`}
+                onClick={() => navigate(`/apartments/${ap.id}/rooms`)} // 👈 thêm dòng này
+              >
+                <td className="p-3">{ap.id}</td>
+                <td className="p-3 font-medium text-blue-700 hover:underline">
+                  {ap.name}
+                </td>
+                <td className="p-3 text-gray-600">{ap.address}</td>
+                <td className="p-3 text-gray-600">{ap.province_id}</td>
+                <td className="p-3 text-gray-600">{ap.district_id}</td>
+                <td className="p-3 text-gray-600">{ap.ward_id}</td>
+                <td className="p-3">
+                  {ap.imagePath ? (
+                    <img src={ap.imagePath} className="h-10 rounded" alt="Apartment" />
+                  ) : (
+                    <span className="text-xs text-gray-400">—</span>
+                  )}
+                </td>
+                <td className="p-3 text-center">
+                  <button
+                    className="text-blue-600 hover:underline mr-3"
+                    onClick={(e) => {
+                      e.stopPropagation(); // 👈 chặn click vào row
+                      openEdit(ap);
+                    }}
+                  >
+                    Sửa
+                  </button>
+                  <button
+                    className="text-red-600 hover:underline"
+                    onClick={(e) => {
+                      e.stopPropagation(); // 👈 chặn click vào row
+                      askDelete(ap.id);
+                    }}
+                  >
+                    Xóa
+                  </button>
+                </td>
+              </tr>
+            ))}
           </tbody>
+
         </table>
       </div>
 
@@ -303,24 +352,24 @@ export default function Apartments() {
           </div>
           <div>
             <label className="text-sm">Tỉnh/Thành phố</label>
-            <select className="border p-2 rounded w-full" value={form.province_id || ''} onChange={e => onProvince(e.target.value)}>
-              <option value="">-- Chọn --</option>
-              {provinces.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
+            <input className="border p-2 rounded w-full" value={form.province_id || ''} onChange={e => setForm(f => ({ ...f, province_id: e.target.value }))} />
+            {/* <option value="">-- Chọn --</option>
+              {provinces.map(p => <option key={p.id} value={p.id}>{p.name}</option>)} */}
+
           </div>
           <div>
             <label className="text-sm">Quận/Huyện</label>
-            <select className="border p-2 rounded w-full" value={form.district_id || ''} onChange={e => onDistrict(e.target.value)} disabled={!form.province_id}>
-              <option value="">-- Chọn --</option>
-              {districts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-            </select>
+            <input className="border p-2 rounded w-full" value={form.district_id || ''} onChange={e => setForm(f => ({ ...f, district_id: e.target.value }))} />
+            {/* <option value="">-- Chọn --</option>
+              {districts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)} */}
+
           </div>
           <div>
             <label className="text-sm">Xã/Phường</label>
-            <select className="border p-2 rounded w-full" value={form.ward_id || ''} onChange={e => onWard(e.target.value)} disabled={!form.district_id}>
-              <option value="">-- Chọn --</option>
-              {wards.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-            </select>
+            <input className="border p-2 rounded w-full" value={form.ward_id || ''} onChange={e => setForm(f => ({ ...f, ward_id: e.target.value }))} />
+            {/* <option value="">-- Chọn --</option>
+              {wards.map(w => <option key={w.id} value={w.id}>{w.name}</option>)} */}
+
           </div>
           <div className="col-span-1 md:col-span-2">
             <label className="text-sm">Ảnh tòa nhà</label>
