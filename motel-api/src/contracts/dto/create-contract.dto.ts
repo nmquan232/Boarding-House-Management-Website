@@ -1,3 +1,4 @@
+// dto/create-contract.dto.ts
 import { Type } from 'class-transformer';
 import { IsArray, IsDateString, IsInt, IsOptional, IsString, Min } from 'class-validator';
 import { ContractMonthlyCostItemDto } from './contract-monthly-cost.dto';
@@ -12,8 +13,9 @@ export class CreateContractDto {
   @IsOptional() @IsInt() @Min(1)
   pay_period?: number;
 
-  @IsString()
-  price: string; // BigInt
+  // ❌ BỎ field price - BE sẽ tự lấy từ room.price
+  // @IsString()
+  // price: string;
 
   @IsOptional() @IsInt()
   electricity_pay_type_id?: number;

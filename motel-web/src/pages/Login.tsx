@@ -14,13 +14,17 @@ const Login = () => {
     e.preventDefault();
     try {
       const res = await authApi.login(email, password);
-      setToken(res.data.access_token);
+      const token = res.data.access_token;
+  
+      // ✅ Lưu token vào cả context và localStorage
+      setToken(token);
+      localStorage.setItem('token', token);
+  
       navigate('/');
     } catch {
       setError('Sai email hoặc mật khẩu');
     }
   };
-
   return (
     <div className="min-h-screen min-w-screen flex items-center justify-center bg-blue-100 p-4">
       <form
