@@ -8,32 +8,10 @@ import { User } from '../common/decorators/user.decorator';
 @UseGuards(JwtAuthGuard)
 @Controller('rooms')
 export class RoomsController {
-  constructor(private readonly roomsService: RoomsService) {}
-
-  /** Lấy danh sách phòng theo apartment */
-  @Get(':id/rooms')
-  async list(
-    @User() user: { userId: number },
-    @Param('id', ParseIntPipe) apartmentId: number,
-    @Query('q') q?: string,
-    @Query('page') page = '1',
-    @Query('take') take = '10',
-  ) {
-    return this.roomsService.list(user.userId, apartmentId, q, Number(page), Number(take));
-  }
-
-  /** Tạo phòng mới */
-  @Post(':id/rooms')
-  async create(
-    @User() user: { userId: number },
-    @Param('id', ParseIntPipe) apartmentId: number,
-    @Body() dto: CreateRoomDto,
-  ) {
-    return this.roomsService.create(user.userId, apartmentId, dto);
-  }
+  constructor(private readonly roomsService: RoomsService) { }
 
   /** Chi tiết phòng */
-  @Get('rooms/:roomId')
+  @Get(':roomId')
   async detail(
     @User() user: { userId: number },
     @Param('roomId', ParseIntPipe) id: number,
@@ -42,7 +20,7 @@ export class RoomsController {
   }
 
   /** Cập nhật phòng */
-  @Put('rooms/:roomId')
+  @Put(':roomId')
   async update(
     @User() user: { userId: number },
     @Param('roomId', ParseIntPipe) id: number,
@@ -52,7 +30,7 @@ export class RoomsController {
   }
 
   /** Xóa phòng */
-  @Delete('rooms/:roomId')
+  @Delete(':roomId')
   async remove(
     @User() user: { userId: number },
     @Param('roomId', ParseIntPipe) id: number,
