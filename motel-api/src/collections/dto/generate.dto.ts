@@ -12,4 +12,11 @@ export class GenerateCollectionDto {
   // Optional: cho phép chọn ngày chốt khác trong tháng
   @IsOptional() @IsDateString()
   charge_date?: string; // default = end of month
+
+  // Optional: cho phép nhập chỉ số điện/nước kết thúc thay vì lấy từ usages
+  @IsOptional() @IsInt()
+  electricity_num_after?: number;
+
+  @IsOptional() @IsInt()
+  water_number_after?: number;
 }

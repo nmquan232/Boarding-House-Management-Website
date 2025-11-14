@@ -40,6 +40,8 @@ export default function Collections() {
     contract_id: '',
     period: defaultPeriod, // YYYY-MM
     charge_date: '', // optional ISO yyyy-mm-dd
+    electricity_num_after: '', // optional chỉ số điện kết thúc
+    water_number_after: '', // optional chỉ số nước kết thúc
   });
 
   // Form: Xem hóa đơn
@@ -88,6 +90,8 @@ export default function Collections() {
         contract_id: Number(contract_id),
         period: period.trim(),
         ...(charge_date ? { charge_date } : {}),
+        ...(createForm.electricity_num_after ? { electricity_num_after: Number(createForm.electricity_num_after) } : {}),
+        ...(createForm.water_number_after ? { water_number_after: Number(createForm.water_number_after) } : {}),
       });
       setBill(data);
       setOpenCreate(false);
@@ -332,7 +336,7 @@ export default function Collections() {
               onChange={(e) => setCreateForm((f) => ({ ...f, period: e.target.value }))}
             />
           </div>
-          <div className="md:col-span-2">
+          <div>
             <label className="text-sm">Ngày chốt (tùy chọn)</label>
             <input
               type="date"
@@ -340,6 +344,32 @@ export default function Collections() {
               value={createForm.charge_date}
               onChange={(e) =>
                 setCreateForm((f) => ({ ...f, charge_date: e.target.value }))
+              }
+            />
+          </div>
+          <div>
+            <label className="text-sm">Chỉ số điện kết thúc (kWh) - tùy chọn</label>
+            <input
+              type="number"
+              min="0"
+              className="border p-2 rounded w-full"
+              placeholder="Để trống nếu lấy từ usages"
+              value={createForm.electricity_num_after}
+              onChange={(e) =>
+                setCreateForm((f) => ({ ...f, electricity_num_after: e.target.value }))
+              }
+            />
+          </div>
+          <div>
+            <label className="text-sm">Chỉ số nước kết thúc (m³) - tùy chọn</label>
+            <input
+              type="number"
+              min="0"
+              className="border p-2 rounded w-full"
+              placeholder="Để trống nếu lấy từ usages"
+              value={createForm.water_number_after}
+              onChange={(e) =>
+                setCreateForm((f) => ({ ...f, water_number_after: e.target.value }))
               }
             />
           </div>

@@ -11,7 +11,10 @@ type Contract = {
   start_date: string;
   end_date?: string | null;
   electricity_price?: string | number | null;
+  electricity_num_start?: number | null;
   water_price?: string | number | null;
+  water_number_start?: number | null;
+  number_of_tenant_current?: number | null;
   note?: string | null;
 
   tenant?: { id: number; name: string } | null;
@@ -43,7 +46,10 @@ function Contracts() {
     // giá phòng sẽ tự fill từ /rooms/:id, trường này chỉ để hiển thị
     price: "",
     electricity_price: "3500",
+    electricity_num_start: "" as string | "",
     water_price: "15000",
+    water_number_start: "" as string | "",
+    number_of_tenant_current: 1,
     start_date: new Date().toISOString().slice(0, 10),
     end_date: "" as string | "",
   });
@@ -80,7 +86,10 @@ function Contracts() {
       tenant_id: tenantIdNumber ? String(tenantIdNumber) : "",
       price: "",
       electricity_price: "3500",
+      electricity_num_start: "",
       water_price: "15000",
+      water_number_start: "",
+      number_of_tenant_current: 1,
       start_date: new Date().toISOString().slice(0, 10),
       end_date: "",
     });
@@ -141,7 +150,10 @@ function Contracts() {
         tenant_id: String(c.tenant_id),
         price: String(c.price), // hiển thị giá hiện tại của HĐ; nếu user đổi phòng, effect trên sẽ autofill lại
         electricity_price: String(c.electricity_price ?? ""),
+        electricity_num_start: String(c.electricity_num_start ?? ""),
         water_price: String(c.water_price ?? ""),
+        water_number_start: String(c.water_number_start ?? ""),
+        number_of_tenant_current: c.number_of_tenant_current ?? 1,
         start_date: c.start_date?.slice(0, 10) ?? "",
         end_date: c.end_date?.slice(0, 10) ?? "",
       });
@@ -163,7 +175,10 @@ function Contracts() {
         tenant_id: String(c.tenant_id),
         price: String(c.price),
         electricity_price: String(c.electricity_price ?? ""),
+        electricity_num_start: String(c.electricity_num_start ?? ""),
         water_price: String(c.water_price ?? ""),
+        water_number_start: String(c.water_number_start ?? ""),
+        number_of_tenant_current: c.number_of_tenant_current ?? 1,
         start_date: c.start_date?.slice(0, 10) ?? "",
         end_date: c.end_date?.slice(0, 10) ?? "",
       });
@@ -196,7 +211,10 @@ function Contracts() {
           tenant_id: Number(form.tenant_id),
           // price: form.price,            // 🚫 bỏ
           electricity_price: form.electricity_price || null,
+          electricity_num_start: form.electricity_num_start ? Number(form.electricity_num_start) : null,
           water_price: form.water_price || null,
+          water_number_start: form.water_number_start ? Number(form.water_number_start) : null,
+          number_of_tenant_current: form.number_of_tenant_current || null,
           start_date: form.start_date,
           end_date: form.end_date || null,
         });
@@ -207,7 +225,10 @@ function Contracts() {
           tenant_id: Number(form.tenant_id),
           // price: form.price,            // 🚫 bỏ
           electricity_price: form.electricity_price || null,
+          electricity_num_start: form.electricity_num_start ? Number(form.electricity_num_start) : null,
           water_price: form.water_price || null,
+          water_number_start: form.water_number_start ? Number(form.water_number_start) : null,
+          number_of_tenant_current: form.number_of_tenant_current || null,
           start_date: form.start_date,
           end_date: form.end_date || null,
         });
@@ -322,8 +343,8 @@ function Contracts() {
           modalMode === "create"
             ? "Tạo hợp đồng"
             : modalMode === "edit"
-            ? "Cập nhật hợp đồng"
-            : "Chi tiết hợp đồng"
+              ? "Cập nhật hợp đồng"
+              : "Chi tiết hợp đồng"
         }
         onClose={() => setOpenModal(false)}
       >
@@ -374,12 +395,53 @@ function Contracts() {
           </div>
 
           <div>
+            <label className="text-sm">Chỉ số điện ban đầu (kWh)</label>
+            <input
+              type="number"
+              min="0"
+              className="border p-2 rounded w-full"
+              value={form.electricity_num_start}
+              disabled={modalMode === "detail"}
+              onChange={(e) => setForm((f) => ({ ...f, electricity_num_start: e.target.value }))}
+              placeholder="Nhập chỉ số điện khi bắt đầu"
+            />
+          </div>
+
+          <div>
             <label className="text-sm">Giá nước (đ/m³)</label>
             <input
               className="border p-2 rounded w-full"
               value={form.water_price}
               disabled={modalMode === "detail"}
               onChange={(e) => setForm((f) => ({ ...f, water_price: e.target.value }))}
+            />
+          </div>
+
+          <div>
+            <label className="text-sm">Chỉ số nước ban đầu (m³)</label>
+            <input
+              type="number"
+              min="0"
+              className="border p-2 rounded w-full"
+              value={form.water_number_start}
+              disabled={modalMode === "detail"}
+              onChange={(e) => setForm((f) => ({ ...f, water_number_start: e.target.value }))}
+              placeholder="Nhập chỉ số nước khi bắt đầu"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm">Số người ở phòng</label>
+            <input
+              type="number"
+              min="1"
+              className="border p-2 rounded w-full"
+              value={form.number_of_tenant_current}
+              disabled={modalMode === "detail"}
+              onChange={(e) => {
+                const val = Number(e.target.value);
+                setForm((f) => ({ ...f, number_of_tenant_current: val > 0 ? val : 1 }));
+              }}
             />
           </div>
 

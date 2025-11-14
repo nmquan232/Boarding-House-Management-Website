@@ -7,13 +7,13 @@ function monthBounds(period: string) {
   // period = "YYYY-MM"
   const [y, m] = period.split('-').map(Number);
   const start = new Date(Date.UTC(y, m - 1, 1, 0, 0, 0));
-  const end   = new Date(Date.UTC(y, m, 0, 23, 59, 59, 999));
+  const end = new Date(Date.UTC(y, m, 0, 23, 59, 59, 999));
   return { start, end };
 }
 
 @Injectable()
 export class CollectionsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   /** Lấy contract và đảm bảo thuộc user hiện tại (qua room -> apartment.user_id) */
   private async getOwnedContractOrThrow(contractId: number, userId: number) {
@@ -59,25 +59,46 @@ export class CollectionsService {
     }
 
     // 3) lấy readings (trước kỳ & cuối kỳ) cho điện/nước
+    // Nếu có chỉ số được nhập từ DTO thì dùng, nếu không thì lấy từ usages
+    let elecAfterNum: number | null = null;
+    let waterAfterNum: number | null = null;
+
+    if (dto.electricity_num_after !== undefined && dto.electricity_num_after !== null) {
+      // Dùng chỉ số được nhập
+      elecAfterNum = dto.electricity_num_after;
+    } else {
+      // Lấy từ usages như cũ
+      const elecEnd = await this.prisma.electricityUsage.findFirst({
+        where: { apartment_room_id: contract.apartment_room_id, input_date: { lte: end } },
+        orderBy: { input_date: 'desc' },
+      });
+      elecAfterNum = elecEnd?.usage_number ?? null;
+    }
+
+    if (dto.water_number_after !== undefined && dto.water_number_after !== null) {
+      // Dùng chỉ số được nhập
+      waterAfterNum = dto.water_number_after;
+    } else {
+      // Lấy từ usages như cũ
+      const waterEnd = await this.prisma.waterUsage.findFirst({
+        where: { apartment_room_id: contract.apartment_room_id, input_date: { lte: end } },
+        orderBy: { input_date: 'desc' },
+      });
+      waterAfterNum = waterEnd?.usage_number ?? null;
+    }
+
+    // Lấy chỉ số trước kỳ (luôn từ usages hoặc contract)
     const elecBefore = await this.prisma.electricityUsage.findFirst({
       where: { apartment_room_id: contract.apartment_room_id, input_date: { lt: start } },
-      orderBy: { input_date: 'desc' },
-    });
-    const elecEnd = await this.prisma.electricityUsage.findFirst({
-      where: { apartment_room_id: contract.apartment_room_id, input_date: { lte: end } },
       orderBy: { input_date: 'desc' },
     });
     const waterBefore = await this.prisma.waterUsage.findFirst({
       where: { apartment_room_id: contract.apartment_room_id, input_date: { lt: start } },
       orderBy: { input_date: 'desc' },
     });
-    const waterEnd = await this.prisma.waterUsage.findFirst({
-      where: { apartment_room_id: contract.apartment_room_id, input_date: { lte: end } },
-      orderBy: { input_date: 'desc' },
-    });
 
     // 4) validate readings
-    if (!elecEnd || !waterEnd) {
+    if (elecAfterNum === null || waterAfterNum === null) {
       throw new BadRequestException('Thiếu chỉ số cuối kỳ (điện hoặc nước) — hãy nhập chỉ số đến cuối tháng trước khi tạo hóa đơn');
     }
     // nếu không có before -> dùng số start trong contract (nếu có)
@@ -86,12 +107,12 @@ export class CollectionsService {
     if (elecBeforeNum === null || waterBeforeNum === null) {
       throw new BadRequestException('Thiếu chỉ số đầu kỳ (điện hoặc nước). Hãy nhập chỉ số trước kỳ hoặc khai báo *_start trong hợp đồng.');
     }
-    if (elecEnd.usage_number < elecBeforeNum || waterEnd.usage_number < waterBeforeNum) {
+    if (elecAfterNum < elecBeforeNum || waterAfterNum < waterBeforeNum) {
       throw new BadRequestException('Chỉ số sau kỳ nhỏ hơn trước kỳ — kiểm tra lại công tơ (reset/thay mới?).');
     }
 
-    const kwh = BigInt(elecEnd.usage_number - elecBeforeNum);
-    const m3  = BigInt(waterEnd.usage_number - waterBeforeNum);
+    const kwh = BigInt(elecAfterNum - elecBeforeNum);
+    const m3 = BigInt(waterAfterNum - waterBeforeNum);
 
     // 5) tính tiền BigInt
     const roomFee = contract.price; // BigInt
@@ -120,9 +141,9 @@ export class CollectionsService {
           apartment_room_id: contract.apartment_room_id,
           tenant_id: contract.tenant_id,
           electricity_num_before: Number(elecBeforeNum),
-          electricity_num_after: elecEnd.usage_number,
+          electricity_num_after: elecAfterNum,
           water_number_before: Number(waterBeforeNum),
-          water_number_after: waterEnd.usage_number,
+          water_number_after: waterAfterNum,
           charge_date: chargeDate,
           total_debt: 0n,
           total_price: total,

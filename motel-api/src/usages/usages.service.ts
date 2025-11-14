@@ -140,7 +140,7 @@ export class UsagesService {
       orderBy: { start_date: 'desc' },
     });
 
-    if (!contract) throw new NotFoundException('No active contract for given period');
+    if (!contract) throw new NotFoundException('Không có hợp đồng đang hoạt động trong thời gian này');
     return contract;
   }
 

@@ -126,10 +126,14 @@ export default function Rooms() {
         />
         <input
           type="number"
+          min="1"
           className="border p-2 rounded"
           placeholder="Số người tối đa"
           value={form.max_tenant}
-          onChange={(e) => setForm(f => ({ ...f, max_tenant: Number(e.target.value) }))}
+          onChange={(e) => {
+            const val = Number(e.target.value);
+            setForm(f => ({ ...f, max_tenant: val > 0 ? val : 1 }));
+          }}
         />
         <div>
           <button className="bg-blue-600 text-white px-4 rounded mr-2" onClick={submit}>

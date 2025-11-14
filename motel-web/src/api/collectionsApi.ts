@@ -26,6 +26,8 @@ export async function generateCollection(payload: {
     contract_id: number;
     period: string; // YYYY-MM
     charge_date?: string; // optional ISO yyyy-mm-dd
+    electricity_num_after?: number; // optional chỉ số điện kết thúc
+    water_number_after?: number; // optional chỉ số nước kết thúc
 }): Promise<Bill> {
     const res = await axiosClient.post('/collections/generate', payload);
     return res.data as Bill;
