@@ -26,37 +26,69 @@ function Register() {
   };
 
   return (
-    <div className="min-h-screen min-w-screen flex items-center justify-center bg-blue-100 p-4">
-      <form onSubmit={submit} className="bg-white shadow-md rounded-lg p-8 w-96">
-        <h2 className="text-3xl text-blue-600 font-bold mb-4 text-center">Đăng ký</h2>
-        {err && <p className="text-red-600 text-center mb-3">{err}</p>}
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-100 p-4">
+      <form onSubmit={submit} className="bg-white shadow-xl rounded-2xl w-full max-w-md p-6 sm:p-8 md:p-10">
+        <div className="text-center mb-8">
+          <h2 className="text-3xl md:text-4xl text-green-700 font-bold mb-2">Đăng ký</h2>
+          <p className="text-gray-600 text-sm">Tạo tài khoản mới để bắt đầu</p>
+        </div>
 
-        <input
-          className="w-full text-gray-700 p-3 mb-4 border rounded-md bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-          placeholder="Họ tên"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <input
-          type="email"
-          className="w-full text-gray-700 p-3 mb-4 border rounded-md bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <input
-          type="password"
-          className="w-full text-gray-700 p-3 mb-4 border rounded-md bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-          placeholder="Mật khẩu (>=6 ký tự)"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <button className="bg-green-600 text-white w-full py-2 rounded hover:bg-green-700">
+        {err && (
+          <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg mb-4 text-center text-sm">
+            {err}
+          </div>
+        )}
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Họ tên</label>
+            <input
+              className="w-full text-gray-700 p-3 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition shadow-sm"
+              placeholder="Nhập họ tên của bạn"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input
+              type="email"
+              className="w-full text-gray-700 p-3 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition shadow-sm"
+              placeholder="Nhập email của bạn"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Mật khẩu</label>
+            <input
+              type="password"
+              className="w-full text-gray-700 p-3 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition shadow-sm"
+              placeholder="Tối thiểu 6 ký tự"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              minLength={6}
+              required
+            />
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          className="bg-green-600 text-white w-full py-3 rounded-lg hover:bg-green-700 focus:ring-4 focus:ring-green-300 transition-all font-medium mt-6 shadow-md hover:shadow-lg"
+        >
           Tạo tài khoản
         </button>
 
-        <p className="text-center text-gray-800 text-sm mt-3">
-          Đã có tài khoản? <Link to="/login" className="text-blue-600">Đăng nhập</Link>
+        <p className="text-center text-gray-600 text-sm mt-6">
+          Đã có tài khoản?{' '}
+          <Link to="/login" className="text-blue-600 hover:text-blue-700 hover:underline font-medium">
+            Đăng nhập ngay
+          </Link>
         </p>
       </form>
     </div>

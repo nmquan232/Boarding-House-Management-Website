@@ -261,13 +261,13 @@ function Contracts() {
   const displayRoom = (c: Contract) => c.apartment_room?.room_number ?? `#${c.apartment_room_id}`;
 
   return (
-    <div className="p-4">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-xl font-bold">
-          Hợp đồng {tenantIdNumber ? `(Người thuê #${tenantIdNumber})` : ""}
+    <div className="p-2 md:p-4">
+      <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <h2 className="text-xl md:text-2xl font-bold text-gray-800">
+          📄 Hợp đồng {tenantIdNumber ? `(Người thuê #${tenantIdNumber})` : ""}
         </h2>
         <button
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:opacity-90"
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm md:text-base shadow-md"
           onClick={openCreate}
         >
           ➕ Thêm hợp đồng
@@ -275,60 +275,65 @@ function Contracts() {
       </div>
 
       {/* Danh sách hợp đồng */}
-      <table className="w-full bg-white shadow rounded overflow-hidden">
-        <thead className="bg-gray-200 text-left">
-          <tr>
-            <th className="p-2">ID</th>
-            <th className="p-2">Người thuê</th>
-            <th className="p-2">Tòa</th>
-            <th className="p-2">Phòng</th>
-            <th className="p-2">Giá</th>
-            <th className="p-2">Bắt đầu</th>
-            <th className="p-2">Kết thúc</th>
-            <th className="p-2 text-center">Thao tác</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((c) => (
-            <tr key={c.id} className="border-b">
-              <td className="p-2">{c.id}</td>
-              <td className="p-2">{displayTenant(c)}</td>
-              <td className="p-2">{displayApartment(c) || "—"}</td>
-              <td className="p-2">{displayRoom(c)}</td>
-              <td className="p-2">{String(c.price)}</td>
-              <td className="p-2">{c.start_date ? new Date(c.start_date).toLocaleDateString() : "—"}</td>
-              <td className="p-2">{c.end_date ? new Date(c.end_date).toLocaleDateString() : "—"}</td>
-              <td className="p-2 text-center space-x-2">
-                <button className="text-blue-600" onClick={() => openDetail(c.id)}>ℹ️</button>
-                <button className="text-green-600" onClick={() => openEdit(c.id)}>✏️</button>
-                <button className="text-red-600" onClick={() => remove(c.id)}>🗑️</button>
-              </td>
-            </tr>
-          ))}
-          {items.length === 0 && (
+      <div className="overflow-x-auto shadow-md rounded-lg border border-gray-200">
+        <table className="min-w-[800px] w-full bg-white">
+          <thead className="bg-gray-100 text-left">
             <tr>
-              <td colSpan={8} className="p-3 text-center text-gray-500">
-                Không có dữ liệu
-              </td>
+              <th className="p-2 md:p-3 text-xs md:text-sm font-semibold">ID</th>
+              <th className="p-2 md:p-3 text-xs md:text-sm font-semibold">Người thuê</th>
+              <th className="p-2 md:p-3 text-xs md:text-sm font-semibold hidden md:table-cell">Tòa</th>
+              <th className="p-2 md:p-3 text-xs md:text-sm font-semibold">Phòng</th>
+              <th className="p-2 md:p-3 text-xs md:text-sm font-semibold hidden lg:table-cell">Giá</th>
+              <th className="p-2 md:p-3 text-xs md:text-sm font-semibold hidden sm:table-cell">Bắt đầu</th>
+              <th className="p-2 md:p-3 text-xs md:text-sm font-semibold hidden lg:table-cell">Kết thúc</th>
+              <th className="p-2 md:p-3 text-center text-xs md:text-sm font-semibold w-32 md:w-40">Thao tác</th>
             </tr>
-          )}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {items.length === 0 ? (
+              <tr>
+                <td colSpan={8} className="p-4 md:p-6 text-center text-gray-500">
+                  Không có dữ liệu
+                </td>
+              </tr>
+            ) : (
+              items.map((c) => (
+                <tr key={c.id} className="border-b hover:bg-gray-50 transition">
+                  <td className="p-2 md:p-3 text-sm">{c.id}</td>
+                  <td className="p-2 md:p-3 text-sm md:text-base font-medium">{displayTenant(c)}</td>
+                  <td className="p-2 md:p-3 text-sm hidden md:table-cell">{displayApartment(c) || "—"}</td>
+                  <td className="p-2 md:p-3 text-sm md:text-base">{displayRoom(c)}</td>
+                  <td className="p-2 md:p-3 text-sm hidden lg:table-cell">{String(c.price)}</td>
+                  <td className="p-2 md:p-3 text-xs md:text-sm hidden sm:table-cell">{c.start_date ? new Date(c.start_date).toLocaleDateString() : "—"}</td>
+                  <td className="p-2 md:p-3 text-xs md:text-sm hidden lg:table-cell">{c.end_date ? new Date(c.end_date).toLocaleDateString() : "—"}</td>
+                  <td className="p-2 md:p-3 text-center">
+                    <div className="flex gap-1 md:gap-2 justify-center">
+                      <button className="text-blue-600 hover:text-blue-800 text-xs md:text-sm px-1 md:px-2 py-1 rounded hover:bg-blue-50 transition" onClick={() => openDetail(c.id)} title="Chi tiết">ℹ️</button>
+                      <button className="text-green-600 hover:text-green-800 text-xs md:text-sm px-1 md:px-2 py-1 rounded hover:bg-green-50 transition" onClick={() => openEdit(c.id)} title="Sửa">✏️</button>
+                      <button className="text-red-600 hover:text-red-800 text-xs md:text-sm px-1 md:px-2 py-1 rounded hover:bg-red-50 transition" onClick={() => remove(c.id)} title="Xóa">🗑️</button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
 
       {/* Phân trang */}
-      <div className="flex gap-2 mt-3 items-center">
+      <div className="flex gap-2 md:gap-3 mt-4 items-center flex-wrap justify-center md:justify-start">
         <button
-          className="border px-3 py-1 rounded disabled:opacity-50"
+          className="border border-gray-300 px-3 py-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm md:text-base transition"
           disabled={page <= 1}
           onClick={() => setPage((p) => p - 1)}
         >
           &lt; Trước
         </button>
-        <span className="px-2 py-1">
+        <span className="text-sm md:text-base px-2">
           Trang {page}/{pages}
         </span>
         <button
-          className="border px-3 py-1 rounded disabled:opacity-50"
+          className="border border-gray-300 px-3 py-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm md:text-base transition"
           disabled={page >= pages}
           onClick={() => setPage((p) => p + 1)}
         >
@@ -353,7 +358,7 @@ function Contracts() {
             e.preventDefault();
             if (modalMode !== "detail") submit();
           }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-3"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4"
         >
           {[
             ["Room ID", "apartment_room_id"],

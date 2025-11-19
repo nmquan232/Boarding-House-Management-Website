@@ -200,27 +200,26 @@ export default function Collections() {
   };
 
   return (
-    <div className="p-4">
+    <div className="p-2 md:p-4">
       {/* Header + actions */}
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-800">💳 Hóa đơn (Thuê + Điện/Nước + Phí)</h2>
-        <div className="flex gap-2">
+      <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <h2 className="text-xl md:text-2xl font-bold text-gray-800">💳 Hóa đơn (Thuê + Điện/Nước + Phí)</h2>
+        <div className="flex flex-wrap gap-2">
           <button
-            className="bg-green-600 text-white px-4 py-2 rounded hover:opacity-90"
+            className="bg-green-600 text-white px-3 md:px-4 py-2 rounded-lg hover:bg-green-700 transition text-sm md:text-base shadow-md"
             onClick={() => setOpenCreate(true)}
           >
             ➕ Tạo hóa đơn
           </button>
           <button
-            className="border px-4 py-2 rounded hover:bg-gray-50"
+            className="border border-gray-300 px-3 md:px-4 py-2 rounded-lg hover:bg-gray-50 transition text-sm md:text-base"
             onClick={() => setOpenView(true)}
           >
             🔎 Xem hóa đơn
           </button>
           <button
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:opacity-90"
+            className="bg-blue-600 text-white px-3 md:px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm md:text-base shadow-md"
             onClick={() => {
-              // nếu đang có bill, tự điền bill_id và số còn lại
               setPayForm((f) => ({
                 ...f,
                 bill_id: bill ? String(bill.id) : '',
@@ -232,7 +231,7 @@ export default function Collections() {
             🧾 Ghi thanh toán
           </button>
           <button
-            className="border px-4 py-2 rounded hover:bg-gray-50"
+            className="border border-gray-300 px-3 md:px-4 py-2 rounded-lg hover:bg-gray-50 transition text-sm md:text-base"
             onClick={() => {
               setPreviewForm({
                 room_id: '',
@@ -244,22 +243,22 @@ export default function Collections() {
               setOpenPreview(true);
             }}
           >
-            ⚡ Tính thử theo phòng
+            ⚡ Tính thử
           </button>
         </div>
       </div>
 
       {/* Hiển thị bill hiện tại */}
       {bill ? (
-        <div className="bg-white shadow p-4 rounded">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">Chi tiết hóa đơn #{bill.id}</h3>
+        <div className="bg-white shadow-md rounded-lg p-4 md:p-6 mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+            <h3 className="text-lg md:text-xl font-semibold text-gray-800">Chi tiết hóa đơn #{bill.id}</h3>
             <div className="text-sm text-gray-500">
               Ngày chốt: <b>{bill.charge_date ? new Date(bill.charge_date).toLocaleDateString() : '-'}</b>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
             <div>Hợp đồng: <b>{bill.tenant_contract_id}</b></div>
             <div>Phòng: <b>{bill.apartment_room_id}</b></div>
             <div>Người thuê: <b>{bill.tenant_id}</b></div>

@@ -26,7 +26,7 @@ export default function Apartments() {
   const pages = Math.max(1, Math.ceil(total / take));        // tổng số trang
   const [loading, setLoading] = useState(false);             // trạng thái đang tải
   const navigate = useNavigate();
-  
+
 
   // ==== Danh sách địa phương (từ bảng Prefecture, chỉ gọi 1 lần) ====
   //  const [prefData, setPrefData] = useState<PrefRow[]>([]);
@@ -223,20 +223,20 @@ export default function Apartments() {
 
   // ==== Giao diện ====
   return (
-    <div className="p-4">
+    <div className="p-2 md:p-4">
       {/* Tiêu đề + nút chức năng */}
-      <div className="flex items-center justify-between mb-5">
-        <h2 className="text-2xl font-bold text-gray-800">🏢 Quản lý Tòa nhà</h2>
-        <div className="flex gap-2">
-          <button onClick={openCreate} className="bg-blue-800 text-white px-4 py-2 rounded hover:bg-green-700">➕ Thêm</button>
-          <button onClick={exportCsv} className="bg-green-800 border px-4 py-2 rounded">⬇️ Xuất CSV</button>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 md:mb-5">
+        <h2 className="text-xl md:text-2xl font-bold text-gray-800">🏢 Quản lý Tòa nhà</h2>
+        <div className="flex gap-2 flex-wrap">
+          <button onClick={openCreate} className="bg-blue-600 text-white px-3 md:px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm md:text-base shadow-md">➕ Thêm</button>
+          <button onClick={exportCsv} className="bg-green-600 text-white px-3 md:px-4 py-2 rounded-lg hover:bg-green-700 transition text-sm md:text-base shadow-md">⬇️ Xuất CSV</button>
         </div>
       </div>
 
       {/* Ô tìm kiếm */}
-      <div className="flex items-center gap-2 mb-4">
+      <div className="mb-4">
         <input
-          className="border p-2 rounded w-full md:w-96 focus:ring-2 focus:ring-blue-400 focus:outline-none"
+          className="border border-gray-300 p-2 md:p-3 rounded-lg w-full focus:ring-2 focus:ring-blue-400 focus:outline-none shadow-sm"
           placeholder="🔍 Tìm theo tên hoặc địa chỉ..."
           value={q}
           onChange={(e) => { setQ(e.target.value); setPage(1); }}
@@ -244,18 +244,18 @@ export default function Apartments() {
       </div>
 
       {/* Bảng danh sách tòa nhà */}
-      <div className="overflow-x-auto">
-        <table className="min-w-[800px] w-full bg-white shadow-md rounded-lg overflow-hidden border border-gray-100">
+      <div className="overflow-x-auto shadow-md rounded-lg border border-gray-200">
+        <table className="min-w-[800px] w-full bg-white">
           <thead className="bg-blue-50 text-gray-700">
             <tr>
-              <th className="p-3 text-left">ID</th>
-              <th className="p-3 text-left">Tên</th>
-              <th className="p-3 text-left">Địa chỉ</th>
-              <th className="p-3 text-left">Tỉnh</th>
-              <th className="p-3 text-left">Quận/Huyện</th>
-              <th className="p-3 text-left">Xã/Phường</th>
-              <th className="p-3 text-left">Ảnh</th>
-              <th className="p-3 text-center w-40">Thao tác</th>
+              <th className="p-2 md:p-3 text-left text-xs md:text-sm font-semibold">ID</th>
+              <th className="p-2 md:p-3 text-left text-xs md:text-sm font-semibold">Tên</th>
+              <th className="p-2 md:p-3 text-left text-xs md:text-sm font-semibold hidden md:table-cell">Địa chỉ</th>
+              <th className="p-2 md:p-3 text-left text-xs md:text-sm font-semibold hidden lg:table-cell">Tỉnh</th>
+              <th className="p-2 md:p-3 text-left text-xs md:text-sm font-semibold hidden lg:table-cell">Quận/Huyện</th>
+              <th className="p-2 md:p-3 text-left text-xs md:text-sm font-semibold hidden lg:table-cell">Xã/Phường</th>
+              <th className="p-2 md:p-3 text-left text-xs md:text-sm font-semibold hidden sm:table-cell">Ảnh</th>
+              <th className="p-2 md:p-3 text-center text-xs md:text-sm font-semibold w-32 md:w-40">Thao tác</th>
             </tr>
           </thead>
           {/* <tbody>
@@ -284,101 +284,108 @@ export default function Apartments() {
             )}
           </tbody> */}
           <tbody>
-            {items.map((ap, i) => (
-              <tr
-                key={ap.id}
-                className={`${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition cursor-pointer`}
-                onClick={() => navigate(`/apartments/${ap.id}/rooms`)} // 👈 thêm dòng này
-              >
-                <td className="p-3">{ap.id}</td>
-                <td className="p-3 font-medium text-blue-700 hover:underline">
-                  {ap.name}
-                </td>
-                <td className="p-3 text-gray-600">{ap.address}</td>
-                <td className="p-3 text-gray-600">{ap.province_id}</td>
-                <td className="p-3 text-gray-600">{ap.district_id}</td>
-                <td className="p-3 text-gray-600">{ap.ward_id}</td>
-                <td className="p-3">
-                  {ap.imagePath ? (
-                    <img src={ap.imagePath} className="h-10 rounded" alt="Apartment" />
-                  ) : (
-                    <span className="text-xs text-gray-400">—</span>
-                  )}
-                </td>
-                <td className="p-3 text-center">
-                  <button
-                    className="text-blue-600 hover:underline mr-3"
-                    onClick={(e) => {
-                      e.stopPropagation(); // 👈 chặn click vào row
-                      openEdit(ap);
-                    }}
-                  >
-                    Sửa
-                  </button>
-                  <button
-                    className="text-red-600 hover:underline"
-                    onClick={(e) => {
-                      e.stopPropagation(); // 👈 chặn click vào row
-                      askDelete(ap.id);
-                    }}
-                  >
-                    Xóa
-                  </button>
+            {loading ? (
+              <tr>
+                <td colSpan={8} className="text-center p-4 md:p-6 text-gray-500">
+                  Đang tải...
                 </td>
               </tr>
-            ))}
+            ) : items.length === 0 ? (
+              <tr>
+                <td colSpan={8} className="text-center p-4 md:p-6 text-gray-500">
+                  Không có dữ liệu
+                </td>
+              </tr>
+            ) : (
+              items.map((ap, i) => (
+                <tr
+                  key={ap.id}
+                  className={`${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition cursor-pointer`}
+                  onClick={() => navigate(`/apartments/${ap.id}/rooms`)}
+                >
+                  <td className="p-2 md:p-3 text-sm">{ap.id}</td>
+                  <td className="p-2 md:p-3 font-medium text-blue-700 hover:underline text-sm md:text-base">
+                    {ap.name}
+                  </td>
+                  <td className="p-2 md:p-3 text-gray-600 text-xs md:text-sm hidden md:table-cell">{ap.address || '—'}</td>
+                  <td className="p-2 md:p-3 text-gray-600 text-xs md:text-sm hidden lg:table-cell">{ap.province_id || '—'}</td>
+                  <td className="p-2 md:p-3 text-gray-600 text-xs md:text-sm hidden lg:table-cell">{ap.district_id || '—'}</td>
+                  <td className="p-2 md:p-3 text-gray-600 text-xs md:text-sm hidden lg:table-cell">{ap.ward_id || '—'}</td>
+                  <td className="p-2 md:p-3 hidden sm:table-cell">
+                    {ap.imagePath ? (
+                      <img src={ap.imagePath} className="h-8 md:h-10 rounded" alt="Apartment" />
+                    ) : (
+                      <span className="text-xs text-gray-400">—</span>
+                    )}
+                  </td>
+                  <td className="p-2 md:p-3 text-center">
+                    <div className="flex gap-1 md:gap-2 justify-center">
+                      <button
+                        className="text-blue-600 hover:text-blue-800 text-xs md:text-sm px-1 md:px-2 py-1 rounded hover:bg-blue-50 transition"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openEdit(ap);
+                        }}
+                      >
+                        Sửa
+                      </button>
+                      <button
+                        className="text-red-600 hover:text-red-800 text-xs md:text-sm px-1 md:px-2 py-1 rounded hover:bg-red-50 transition"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          askDelete(ap.id);
+                        }}
+                      >
+                        Xóa
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
 
         </table>
       </div>
 
       {/* Phân trang */}
-      <div className="flex gap-3 mt-5 items-center flex-wrap">
-        <button className="border px-3 py-1 rounded hover:bg-gray-100 disabled:opacity-50" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>&lt; Trang trước</button>
-        <span>Trang <b>{page}</b> / {pages}</span>
-        <button className="border px-3 py-1 rounded hover:bg-gray-100 disabled:opacity-50" disabled={page >= pages} onClick={() => setPage(p => p + 1)}>Trang sau &gt;</button>
+      <div className="flex gap-2 md:gap-3 mt-4 md:mt-5 items-center flex-wrap justify-center md:justify-start">
+        <button className="border border-gray-300 px-3 py-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm md:text-base transition" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>&lt; Trước</button>
+        <span className="text-sm md:text-base px-2">Trang <b>{page}</b> / {pages}</span>
+        <button className="border border-gray-300 px-3 py-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm md:text-base transition" disabled={page >= pages} onClick={() => setPage(p => p + 1)}>Sau &gt;</button>
       </div>
 
       {/* Modal thêm / sửa tòa nhà */}
       <Modal open={openModal} title={editingId ? 'Sửa tòa nhà' : 'Thêm tòa nhà'} onClose={() => setOpenModal(false)}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
           <div className="col-span-1 md:col-span-2">
-            <label className="text-sm">Tên tòa nhà</label>
-            <input className="border p-2 rounded w-full" value={form.name || ''} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
-          </div>
-          <div className="col-span-1 md:col-span-2">
-            <label className="text-sm">Địa chỉ</label>
-            <input className="border p-2 rounded w-full" value={form.address || ''} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} />
-          </div>
-          <div>
-            <label className="text-sm">Tỉnh/Thành phố</label>
-            <input className="border p-2 rounded w-full" value={form.province_id || ''} onChange={e => setForm(f => ({ ...f, province_id: e.target.value }))} />
-            {/* <option value="">-- Chọn --</option>
-              {provinces.map(p => <option key={p.id} value={p.id}>{p.name}</option>)} */}
-
-          </div>
-          <div>
-            <label className="text-sm">Quận/Huyện</label>
-            <input className="border p-2 rounded w-full" value={form.district_id || ''} onChange={e => setForm(f => ({ ...f, district_id: e.target.value }))} />
-            {/* <option value="">-- Chọn --</option>
-              {districts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)} */}
-
-          </div>
-          <div>
-            <label className="text-sm">Xã/Phường</label>
-            <input className="border p-2 rounded w-full" value={form.ward_id || ''} onChange={e => setForm(f => ({ ...f, ward_id: e.target.value }))} />
-            {/* <option value="">-- Chọn --</option>
-              {wards.map(w => <option key={w.id} value={w.id}>{w.name}</option>)} */}
-
+            <label className="block text-sm font-medium text-gray-700 mb-1">Tên tòa nhà *</label>
+            <input className="border border-gray-300 p-2 md:p-3 rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:outline-none" value={form.name || ''} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required />
           </div>
           <div className="col-span-1 md:col-span-2">
-            <label className="text-sm">Ảnh tòa nhà</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Địa chỉ</label>
+            <input className="border border-gray-300 p-2 md:p-3 rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:outline-none" value={form.address || ''} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Tỉnh/Thành phố</label>
+            <input className="border border-gray-300 p-2 md:p-3 rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:outline-none" value={form.province_id || ''} onChange={e => setForm(f => ({ ...f, province_id: e.target.value }))} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Quận/Huyện</label>
+            <input className="border border-gray-300 p-2 md:p-3 rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:outline-none" value={form.district_id || ''} onChange={e => setForm(f => ({ ...f, district_id: e.target.value }))} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Xã/Phường</label>
+            <input className="border border-gray-300 p-2 md:p-3 rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:outline-none" value={form.ward_id || ''} onChange={e => setForm(f => ({ ...f, ward_id: e.target.value }))} />
+          </div>
+          <div className="col-span-1 md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Ảnh tòa nhà</label>
             <ImageUploader value={form.imagePath || null} onChange={(url) => setForm(f => ({ ...f, imagePath: url }))} />
           </div>
         </div>
-        <div className="mt-4 flex justify-end gap-2">
-          <button onClick={() => setOpenModal(false)} className="px-4 py-2 rounded border">Hủy</button>
-          <button onClick={save} className="px-4 py-2 rounded bg-blue-600 text-white">{editingId ? 'Lưu' : 'Tạo mới'}</button>
+        <div className="mt-4 md:mt-6 flex justify-end gap-2 md:gap-3">
+          <button onClick={() => setOpenModal(false)} className="px-4 md:px-6 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition text-sm md:text-base">Hủy</button>
+          <button onClick={save} className="px-4 md:px-6 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition text-sm md:text-base shadow-md">{editingId ? 'Lưu' : 'Tạo mới'}</button>
         </div>
       </Modal>
 
