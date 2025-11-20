@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { User } from '../common/decorators/user.decorator';
 import { CollectionsService } from './collections.service';
@@ -8,7 +8,17 @@ import { PayDto } from './dto/pay.dto';
 @UseGuards(JwtAuthGuard)
 @Controller('collections')
 export class CollectionsController {
-  constructor(private service: CollectionsService) {}
+  constructor(private service: CollectionsService) { }
+
+  @Get()
+  list(
+    @User() user: { userId: number },
+    @Query('page') page = '1',
+    @Query('take') take = '10',
+    @Query('status') status?: 'paid' | 'unpaid' | 'all',
+  ) {
+    return this.service.list(user.userId, Number(page), Number(take), status || 'all');
+  }
 
   @Post('generate')
   generate(@User() user: { userId: number }, @Body() dto: GenerateCollectionDto) {

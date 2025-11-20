@@ -46,4 +46,29 @@ export async function payBill(
     return res.data as Bill;
 }
 
+export type BillListItem = Bill & {
+    tenant_contract?: {
+        apartment_room?: {
+            room_number: string;
+            apartment?: { name: string };
+        };
+        tenant?: { name: string };
+    };
+};
+
+export async function getBillsList(params?: {
+    page?: number;
+    take?: number;
+    status?: 'paid' | 'unpaid' | 'all';
+}): Promise<{
+    items: BillListItem[];
+    total: number;
+    page: number;
+    take: number;
+    pages: number;
+}> {
+    const res = await axiosClient.get('/collections', { params });
+    return res.data;
+}
+
 

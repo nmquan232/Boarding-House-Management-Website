@@ -25,7 +25,7 @@ function App() {
               </ProtectedRoute>
             }
           >
-            
+
             <Route index element={<Dashboard />} />
             <Route path="apartments" element={<Apartments />} />
             <Route path="apartments/:id/rooms" element={<Rooms />} />

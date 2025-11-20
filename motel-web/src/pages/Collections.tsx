@@ -1,11 +1,13 @@
 // src/pages/Collections.tsx
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Modal from '../components/Modal';
 import {
   generateCollection,
   getBillDetail,
   payBill,
+  getBillsList,
   type Bill,
+  type BillListItem,
 } from '../api/collectionsApi';
 import { previewMonth, type PreviewResult } from '../api/usagesApi.js';
 
@@ -17,6 +19,15 @@ function formatVND(s?: string | null) {
 }
 
 export default function Collections() {
+  // Danh sách hóa đơn
+  const [bills, setBills] = useState<BillListItem[]>([]);
+  const [billsPage, setBillsPage] = useState(1);
+  const [billsTotal, setBillsTotal] = useState(0);
+  const [billsStatus, setBillsStatus] = useState<'all' | 'paid' | 'unpaid'>('all');
+  const [loadingBills, setLoadingBills] = useState(false);
+  const billsTake = 10;
+  const billsPages = Math.ceil(billsTotal / billsTake);
+
   // Bill hiện tại (sau khi tạo / xem chi tiết / thanh toán)
   const [bill, setBill] = useState<Bill | null>(null);
 
@@ -63,6 +74,30 @@ export default function Collections() {
   const [previewData, setPreviewData] = useState<PreviewResult | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
 
+  // Load danh sách hóa đơn
+  const loadBills = async () => {
+    setLoadingBills(true);
+    try {
+      const res = await getBillsList({
+        page: billsPage,
+        take: billsTake,
+        status: billsStatus,
+      });
+      setBills(res.items);
+      setBillsTotal(res.total);
+    } catch (e: any) {
+      console.error('Load bills error:', e?.response?.data || e);
+      alert('Không thể tải danh sách hóa đơn');
+    } finally {
+      setLoadingBills(false);
+    }
+  };
+
+  useEffect(() => {
+    loadBills();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [billsPage, billsStatus]);
+
   // Tính còn lại = total_price - total_paid
   const remain = useMemo(() => {
     if (!bill) return '0';
@@ -71,6 +106,14 @@ export default function Collections() {
     const r = Math.max(0, tp - pd);
     return String(r);
   }, [bill]);
+
+  // Tính trạng thái thanh toán của một bill
+  const getBillStatus = (b: BillListItem) => {
+    const totalPrice = Number(b.total_price || 0);
+    const totalPaid = Number(b.total_paid || 0);
+    if (totalPaid >= totalPrice && totalPrice > 0) return 'paid';
+    return 'unpaid';
+  };
 
   // ====== Actions: Collections ======
   const doCreate = async () => {
@@ -96,9 +139,15 @@ export default function Collections() {
       setBill(data);
       setOpenCreate(false);
       alert('Đã tạo/xuất hóa đơn thành công!');
+      await loadBills(); // Reload danh sách
     } catch (e: any) {
-      console.error('Generate error:', e?.response?.data || e);
-      alert(e?.response?.data?.message || 'Lỗi tạo hóa đơn');
+      console.error('Generate error:', e);
+      console.error('Error response:', e?.response);
+      console.error('Error data:', e?.response?.data);
+      const errorMsg = e?.response?.data?.message || e?.response?.data?.error || e?.message || 'Lỗi tạo hóa đơn';
+      const status = e?.response?.status;
+      console.error(`Status: ${status}, Message: ${errorMsg}`);
+      alert(`Lỗi tạo hóa đơn (${status || 'N/A'}): ${errorMsg}\n\nVui lòng kiểm tra console để xem chi tiết.`);
     } finally {
       setCreating(false);
     }
@@ -116,9 +165,15 @@ export default function Collections() {
       const data = await getBillDetail(id);
       setBill(data);
       setOpenView(false);
+      await loadBills(); // Reload để cập nhật danh sách
     } catch (e: any) {
       console.error('View error:', e?.response?.data || e);
-      alert(e?.response?.data?.message || 'Không tìm thấy hóa đơn');
+      const errorMsg = e?.response?.data?.message || e?.message || 'Không tìm thấy hóa đơn';
+      if (e?.response?.status === 404) {
+        alert(`Hóa đơn #${id} không tồn tại hoặc không thuộc quyền của bạn`);
+      } else {
+        alert(`Lỗi: ${errorMsg}`);
+      }
     } finally {
       setViewing(false);
     }
@@ -141,9 +196,15 @@ export default function Collections() {
       setBill(data);
       setOpenPay(false);
       alert('Ghi thanh toán thành công');
+      await loadBills(); // Reload danh sách
     } catch (e: any) {
       console.error('Pay error:', e?.response?.data || e);
-      alert(e?.response?.data?.message || 'Lỗi thanh toán');
+      const errorMsg = e?.response?.data?.message || e?.message || 'Lỗi thanh toán';
+      if (e?.response?.status === 404) {
+        alert(`Hóa đơn #${id} không tồn tại hoặc không thuộc quyền của bạn`);
+      } else {
+        alert(`Lỗi thanh toán: ${errorMsg}`);
+      }
     } finally {
       setPaying(false);
     }
@@ -191,6 +252,7 @@ export default function Collections() {
       setBill(billData);
       setOpenPreview(false);
       alert('Đã tạo hóa đơn từ preview thành công!');
+      await loadBills(); // Reload danh sách
     } catch (e: any) {
       console.error('Create-from-preview error:', e?.response?.data || e);
       alert(e?.response?.data?.message || 'Lỗi tạo hóa đơn từ preview');
@@ -246,6 +308,186 @@ export default function Collections() {
             ⚡ Tính thử
           </button>
         </div>
+      </div>
+
+      {/* Filter và danh sách hóa đơn */}
+      <div className="mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+          <h3 className="text-lg font-semibold text-gray-800">Danh sách hóa đơn</h3>
+          <div className="flex gap-2">
+            <button
+              className={`px-3 py-1.5 rounded-lg text-sm transition ${billsStatus === 'all'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              onClick={() => {
+                setBillsStatus('all');
+                setBillsPage(1);
+              }}
+            >
+              Tất cả
+            </button>
+            <button
+              className={`px-3 py-1.5 rounded-lg text-sm transition ${billsStatus === 'paid'
+                ? 'bg-green-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              onClick={() => {
+                setBillsStatus('paid');
+                setBillsPage(1);
+              }}
+            >
+              Đã thanh toán
+            </button>
+            <button
+              className={`px-3 py-1.5 rounded-lg text-sm transition ${billsStatus === 'unpaid'
+                ? 'bg-red-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              onClick={() => {
+                setBillsStatus('unpaid');
+                setBillsPage(1);
+              }}
+            >
+              Chưa thanh toán
+            </button>
+          </div>
+        </div>
+
+        {loadingBills ? (
+          <div className="text-center p-8 text-gray-500">Đang tải...</div>
+        ) : (
+          <>
+            <div className="overflow-x-auto shadow-md rounded-lg border border-gray-200 mb-4">
+              <table className="min-w-[800px] w-full bg-white">
+                <thead className="bg-gray-100 text-left">
+                  <tr>
+                    <th className="p-2 md:p-3 text-xs md:text-sm font-semibold">ID</th>
+                    <th className="p-2 md:p-3 text-xs md:text-sm font-semibold">Tòa nhà</th>
+                    <th className="p-2 md:p-3 text-xs md:text-sm font-semibold">Phòng</th>
+                    <th className="p-2 md:p-3 text-xs md:text-sm font-semibold hidden md:table-cell">Người thuê</th>
+                    <th className="p-2 md:p-3 text-xs md:text-sm font-semibold">Tổng tiền</th>
+                    <th className="p-2 md:p-3 text-xs md:text-sm font-semibold">Đã trả</th>
+                    <th className="p-2 md:p-3 text-xs md:text-sm font-semibold">Còn lại</th>
+                    <th className="p-2 md:p-3 text-xs md:text-sm font-semibold hidden sm:table-cell">Ngày chốt</th>
+                    <th className="p-2 md:p-3 text-xs md:text-sm font-semibold">Trạng thái</th>
+                    <th className="p-2 md:p-3 text-center text-xs md:text-sm font-semibold w-32">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bills.length === 0 ? (
+                    <tr>
+                      <td colSpan={10} className="text-center p-4 md:p-6 text-gray-500">
+                        Không có hóa đơn nào
+                      </td>
+                    </tr>
+                  ) : (
+                    bills.map((b) => {
+                      const totalPrice = Number(b.total_price || 0);
+                      const totalPaid = Number(b.total_paid || 0);
+                      const remainAmount = Math.max(0, totalPrice - totalPaid);
+                      const status = getBillStatus(b);
+                      return (
+                        <tr
+                          key={b.id}
+                          className="border-b hover:bg-gray-50 transition cursor-pointer"
+                          onClick={async () => {
+                            try {
+                              const detail = await getBillDetail(b.id);
+                              setBill(detail);
+                            } catch (e: any) {
+                              console.error('View bill detail error:', e?.response?.data || e);
+                              const errorMsg = e?.response?.data?.message || e?.message || 'Không thể tải chi tiết hóa đơn';
+                              if (e?.response?.status === 404) {
+                                alert(`Hóa đơn #${b.id} không tồn tại hoặc không thuộc quyền của bạn`);
+                              } else {
+                                alert(`Lỗi: ${errorMsg}`);
+                              }
+                            }
+                          }}
+                        >
+                          <td className="p-2 md:p-3 text-sm">{b.id}</td>
+                          <td className="p-2 md:p-3 text-sm">
+                            {b.tenant_contract?.apartment_room?.apartment?.name || '—'}
+                          </td>
+                          <td className="p-2 md:p-3 text-sm font-medium">
+                            {b.tenant_contract?.apartment_room?.room_number || `#${b.apartment_room_id}`}
+                          </td>
+                          <td className="p-2 md:p-3 text-sm hidden md:table-cell">
+                            {b.tenant_contract?.tenant?.name || `#${b.tenant_id}`}
+                          </td>
+                          <td className="p-2 md:p-3 text-sm font-medium">{formatVND(b.total_price)} ₫</td>
+                          <td className="p-2 md:p-3 text-sm">{formatVND(b.total_paid)} ₫</td>
+                          <td className="p-2 md:p-3 text-sm font-medium text-red-600">
+                            {formatVND(String(remainAmount))} ₫
+                          </td>
+                          <td className="p-2 md:p-3 text-xs md:text-sm hidden sm:table-cell">
+                            {b.charge_date ? new Date(b.charge_date).toLocaleDateString() : '—'}
+                          </td>
+                          <td className="p-2 md:p-3">
+                            <span
+                              className={`px-2 py-1 rounded text-xs font-medium ${status === 'paid'
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-red-100 text-red-800'
+                                }`}
+                            >
+                              {status === 'paid' ? '✓ Đã trả' : '⚠ Chưa trả'}
+                            </span>
+                          </td>
+                          <td className="p-2 md:p-3 text-center">
+                            <button
+                              className="text-blue-600 hover:text-blue-800 text-xs md:text-sm px-2 py-1 rounded hover:bg-blue-50 transition"
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                try {
+                                  const detail = await getBillDetail(b.id);
+                                  setBill(detail);
+                                } catch (err: any) {
+                                  console.error('View bill detail error:', err?.response?.data || err);
+                                  const errorMsg = err?.response?.data?.message || err?.message || 'Không thể tải chi tiết hóa đơn';
+                                  if (err?.response?.status === 404) {
+                                    alert(`Hóa đơn #${b.id} không tồn tại hoặc không thuộc quyền của bạn`);
+                                  } else {
+                                    alert(`Lỗi: ${errorMsg}`);
+                                  }
+                                }
+                              }}
+                            >
+                              Chi tiết
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            {billsPages > 1 && (
+              <div className="flex gap-2 md:gap-3 items-center flex-wrap justify-center md:justify-start mb-4">
+                <button
+                  className="border border-gray-300 px-3 py-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm md:text-base transition"
+                  disabled={billsPage <= 1}
+                  onClick={() => setBillsPage((p) => p - 1)}
+                >
+                  &lt; Trước
+                </button>
+                <span className="text-sm md:text-base px-2">
+                  Trang {billsPage}/{billsPages}
+                </span>
+                <button
+                  className="border border-gray-300 px-3 py-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm md:text-base transition"
+                  disabled={billsPage >= billsPages}
+                  onClick={() => setBillsPage((p) => p + 1)}
+                >
+                  Sau &gt;
+                </button>
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* Hiển thị bill hiện tại */}

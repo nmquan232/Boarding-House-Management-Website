@@ -2,6 +2,7 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { PrismaService } from '../prisma/prisma.service';
 import { GenerateCollectionDto } from './dto/generate.dto';
 import { PayDto } from './dto/pay.dto';
+import * as crypto from 'crypto';
 
 function monthBounds(period: string) {
   // period = "YYYY-MM"
@@ -46,7 +47,9 @@ export class CollectionsService {
 
   /** Tạo bill cho 1 hợp đồng theo kỳ YYYY-MM */
   async generate(userId: number, dto: GenerateCollectionDto) {
+    console.log('[CollectionsService] generate called with:', { userId, dto });
     const { start, end } = monthBounds(dto.period);
+    console.log('[CollectionsService] period bounds:', { start, end });
 
     // 1) lấy contract (kèm giá, phí cố định)
     const contract = await this.getOwnedContractOrThrow(dto.contract_id, userId);
@@ -87,28 +90,85 @@ export class CollectionsService {
       waterAfterNum = waterEnd?.usage_number ?? null;
     }
 
-    // Lấy chỉ số trước kỳ (luôn từ usages hoặc contract)
-    const elecBefore = await this.prisma.electricityUsage.findFirst({
-      where: { apartment_room_id: contract.apartment_room_id, input_date: { lt: start } },
-      orderBy: { input_date: 'desc' },
-    });
-    const waterBefore = await this.prisma.waterUsage.findFirst({
-      where: { apartment_room_id: contract.apartment_room_id, input_date: { lt: start } },
-      orderBy: { input_date: 'desc' },
+    // Lấy chỉ số trước kỳ: ưu tiên từ hóa đơn tháng trước, sau đó mới từ usages hoặc contract
+    // Tìm hóa đơn gần nhất trước tháng hiện tại
+    // Tìm tất cả hóa đơn của contract này, sau đó filter trong code
+    const allBills = await this.prisma.roomFeeCollection.findMany({
+      where: {
+        tenant_contract_id: contract.id,
+      },
+      orderBy: { id: 'desc' },
     });
 
-    // 4) validate readings
-    if (elecAfterNum === null || waterAfterNum === null) {
-      throw new BadRequestException('Thiếu chỉ số cuối kỳ (điện hoặc nước) — hãy nhập chỉ số đến cuối tháng trước khi tạo hóa đơn');
+    // Tìm hóa đơn có charge_date trước tháng hiện tại (hoặc null nhưng là hóa đơn cũ nhất)
+    let previousBill = allBills.find(
+      (b) => b.charge_date && b.charge_date < start,
+    );
+
+    // Nếu không tìm thấy, lấy hóa đơn mới nhất (có thể charge_date null)
+    if (!previousBill && allBills.length > 0) {
+      const latestBill = allBills[0];
+      // Chỉ dùng nếu thực sự là hóa đơn trước (charge_date null hoặc trước tháng hiện tại)
+      if (!latestBill.charge_date || latestBill.charge_date < start) {
+        previousBill = latestBill;
+      }
     }
-    // nếu không có before -> dùng số start trong contract (nếu có)
-    const elecBeforeNum = elecBefore?.usage_number ?? contract.electricity_num_start ?? null;
-    const waterBeforeNum = waterBefore?.usage_number ?? contract.water_number_start ?? null;
+
+    let elecBeforeNum: number | null = null;
+    let waterBeforeNum: number | null = null;
+
+    // Nếu có hóa đơn tháng trước và có chỉ số cuối kỳ, lấy từ đó
+    if (previousBill) {
+      elecBeforeNum = previousBill.electricity_num_after ?? null;
+      waterBeforeNum = previousBill.water_number_after ?? null;
+    }
+
+    // Nếu không có hóa đơn tháng trước hoặc không có chỉ số, tìm trong usages hoặc dùng contract start
+    if (elecBeforeNum === null) {
+      const elecBefore = await this.prisma.electricityUsage.findFirst({
+        where: { apartment_room_id: contract.apartment_room_id, input_date: { lt: start } },
+        orderBy: { input_date: 'desc' },
+      });
+      elecBeforeNum = elecBefore?.usage_number ?? contract.electricity_num_start ?? null;
+    }
+
+    if (waterBeforeNum === null) {
+      const waterBefore = await this.prisma.waterUsage.findFirst({
+        where: { apartment_room_id: contract.apartment_room_id, input_date: { lt: start } },
+        orderBy: { input_date: 'desc' },
+      });
+      waterBeforeNum = waterBefore?.usage_number ?? contract.water_number_start ?? null;
+    }
+
+    // 4) validate readings
+    console.log('[CollectionsService] Readings:', {
+      elecBeforeNum,
+      elecAfterNum,
+      waterBeforeNum,
+      waterAfterNum,
+      hasPreviousBill: !!previousBill,
+    });
+
+    if (elecAfterNum === null || waterAfterNum === null) {
+      const errorMsg = `Thiếu chỉ số cuối kỳ (điện hoặc nước) — hãy nhập chỉ số đến cuối tháng trước khi tạo hóa đơn. ` +
+        `Điện: ${elecAfterNum ?? 'null'}, Nước: ${waterAfterNum ?? 'null'}`;
+      console.error('[CollectionsService]', errorMsg);
+      throw new BadRequestException(errorMsg);
+    }
     if (elecBeforeNum === null || waterBeforeNum === null) {
-      throw new BadRequestException('Thiếu chỉ số đầu kỳ (điện hoặc nước). Hãy nhập chỉ số trước kỳ hoặc khai báo *_start trong hợp đồng.');
+      const hasPreviousBill = previousBill ? 'Có' : 'Không có';
+      const errorMsg = `Thiếu chỉ số đầu kỳ (điện hoặc nước). ` +
+        `Điện: ${elecBeforeNum ?? 'null'}, Nước: ${waterBeforeNum ?? 'null'}. ` +
+        `${hasPreviousBill} hóa đơn tháng trước. ` +
+        `Hãy nhập chỉ số trước kỳ hoặc khai báo *_start trong hợp đồng.`;
+      console.error('[CollectionsService]', errorMsg);
+      throw new BadRequestException(errorMsg);
     }
     if (elecAfterNum < elecBeforeNum || waterAfterNum < waterBeforeNum) {
-      throw new BadRequestException('Chỉ số sau kỳ nhỏ hơn trước kỳ — kiểm tra lại công tơ (reset/thay mới?).');
+      const errorMsg = `Chỉ số sau kỳ nhỏ hơn trước kỳ — kiểm tra lại công tơ (reset/thay mới?). ` +
+        `Điện: ${elecBeforeNum} → ${elecAfterNum}, Nước: ${waterBeforeNum} → ${waterAfterNum}`;
+      console.error('[CollectionsService]', errorMsg);
+      throw new BadRequestException(errorMsg);
     }
 
     const kwh = BigInt(elecAfterNum - elecBeforeNum);
@@ -128,32 +188,126 @@ export class CollectionsService {
 
     // 6) tạo bill trong transaction
     const chargeDate = dto.charge_date ? new Date(dto.charge_date) : end; // mặc định cuối tháng
-    const created = await this.prisma.$transaction(async (tx) => {
-      // kiểm tra lần nữa idempotent trong transaction
-      const dup = await tx.roomFeeCollection.findFirst({
-        where: { tenant_contract_id: contract.id, charge_date: { gte: start, lte: end } },
-      });
-      if (dup) return dup;
-
-      return tx.roomFeeCollection.create({
-        data: {
-          tenant_contract_id: contract.id,
-          apartment_room_id: contract.apartment_room_id,
-          tenant_id: contract.tenant_id,
-          electricity_num_before: Number(elecBeforeNum),
-          electricity_num_after: elecAfterNum,
-          water_number_before: Number(waterBeforeNum),
-          water_number_after: waterAfterNum,
-          charge_date: chargeDate,
-          total_debt: 0n,
-          total_price: total,
-          total_paid: 0n,
-          fee_collection_uuid: crypto.randomUUID(), // cần `import * as crypto from 'crypto'` nếu TS target CJS
-        },
-      });
+    console.log('[CollectionsService] Creating bill with:', {
+      contract_id: contract.id,
+      chargeDate,
+      total: total.toString(),
     });
 
+    let created;
+    try {
+      created = await this.prisma.$transaction(async (tx) => {
+        // kiểm tra lần nữa idempotent trong transaction
+        const dup = await tx.roomFeeCollection.findFirst({
+          where: { tenant_contract_id: contract.id, charge_date: { gte: start, lte: end } },
+        });
+        if (dup) {
+          console.log('[CollectionsService] Found duplicate bill:', dup.id);
+          return dup;
+        }
+
+        console.log('[CollectionsService] Creating new bill...');
+        const newBill = await tx.roomFeeCollection.create({
+          data: {
+            tenant_contract_id: contract.id,
+            apartment_room_id: contract.apartment_room_id,
+            tenant_id: contract.tenant_id,
+            electricity_num_before: Number(elecBeforeNum),
+            electricity_num_after: elecAfterNum,
+            water_number_before: Number(waterBeforeNum),
+            water_number_after: waterAfterNum,
+            charge_date: chargeDate,
+            total_debt: 0n,
+            total_price: total,
+            total_paid: 0n,
+            fee_collection_uuid: crypto.randomUUID(),
+          },
+        });
+
+        console.log('[CollectionsService] Bill created successfully:', newBill.id);
+
+        // Đảm bảo bill được tạo thành công
+        if (!newBill || !newBill.id) {
+          throw new BadRequestException('Không thể tạo hóa đơn trong database');
+        }
+
+        return newBill;
+      });
+    } catch (error: any) {
+      console.error('[CollectionsService] Error creating bill:', error);
+      console.error('[CollectionsService] Error stack:', error?.stack);
+      if (error instanceof BadRequestException || error instanceof ForbiddenException || error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException(
+        `Lỗi khi tạo hóa đơn: ${error?.message || error?.code || 'Unknown error'}`
+      );
+    }
+
+    if (!created) {
+      console.error('[CollectionsService] Transaction returned null/undefined');
+      throw new BadRequestException('Không thể tạo hóa đơn - transaction không trả về dữ liệu');
+    }
+
+    console.log('[CollectionsService] Returning bill:', created.id);
     return this.toSafeBill(created);
+  }
+
+  /** Danh sách hóa đơn của user */
+  async list(userId: number, page = 1, take = 10, status?: 'paid' | 'unpaid' | 'all') {
+    const where: any = {
+      tenant_contract: {
+        apartment_room: {
+          apartment: { user_id: userId },
+        },
+      },
+    };
+
+    const [items, total] = await Promise.all([
+      this.prisma.roomFeeCollection.findMany({
+        where,
+        include: {
+          tenant_contract: {
+            include: {
+              apartment_room: { include: { apartment: true } },
+              tenant: true,
+            },
+          },
+        },
+        orderBy: { id: 'desc' },
+        skip: (page - 1) * take,
+        take,
+      }),
+      this.prisma.roomFeeCollection.count({ where }),
+    ]);
+
+    // Filter theo trạng thái thanh toán ở application level
+    let filteredItems = items;
+    if (status === 'paid') {
+      // Đã thanh toán: total_paid >= total_price
+      filteredItems = items.filter(
+        (item) =>
+          item.total_paid &&
+          item.total_price &&
+          item.total_paid >= item.total_price,
+      );
+    } else if (status === 'unpaid') {
+      // Chưa thanh toán: total_paid < total_price hoặc total_paid = null/0
+      filteredItems = items.filter(
+        (item) =>
+          !item.total_paid ||
+          item.total_paid === 0n ||
+          (item.total_price && item.total_paid < item.total_price),
+      );
+    }
+
+    return {
+      items: filteredItems.map((item) => this.toSafeBill(item)),
+      total: status ? filteredItems.length : total,
+      page,
+      take,
+      pages: Math.ceil((status ? filteredItems.length : total) / take),
+    };
   }
 
   /** Xem chi tiết bill (kèm BigInt → string) và histories */
