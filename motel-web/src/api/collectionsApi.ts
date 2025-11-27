@@ -71,4 +71,9 @@ export async function getBillsList(params?: {
     return res.data;
 }
 
+export async function deleteBill(id: number): Promise<{ ok: boolean; message: string }> {
+    const res = await axiosClient.delete(`/collections/${id}`);
+    return res.data;
+}
+
 

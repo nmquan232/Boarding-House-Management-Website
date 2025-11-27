@@ -20,6 +20,7 @@ model Admin {
   admin_uuid     String  @unique @db.VarChar(64)
   admin_login_id String  @unique @db.VarChar(64)
   email          String? @db.VarChar(256)
+  password       String  @db.VarChar(256) // mật khẩu đã hash
 }
 
 model Apartment {

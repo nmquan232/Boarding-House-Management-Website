@@ -4,7 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { authApi } from '../api/authApi';
 
 const Login = () => {
-  const { setToken } = useAuth();
+  const { setAuth } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -14,11 +14,8 @@ const Login = () => {
     e.preventDefault();
     try {
       const res = await authApi.login(email, password);
-      const token = res.data.access_token;
-
-      // ✅ Lưu token vào cả context và localStorage
-      setToken(token);
-      localStorage.setItem('token', token);
+      const { access_token, user } = res.data;
+      setAuth(access_token, user);
 
       navigate('/');
     } catch {

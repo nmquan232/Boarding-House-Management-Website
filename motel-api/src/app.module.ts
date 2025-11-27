@@ -10,10 +10,11 @@ import { TenantsModule } from './tenants/tenants.module';
 import { ContractsModule } from './contracts/contracts.module';
 import { UsagesModule } from './usages/usages.module';
 import { CollectionsModule } from './collections/collections.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, ApartmentsModule, UploadsModule, RoomsModule, TenantsModule, ContractsModule, UsagesModule, CollectionsModule],
+  imports: [PrismaModule, AuthModule, ApartmentsModule, UploadsModule, RoomsModule, TenantsModule, ContractsModule, UsagesModule, CollectionsModule, AdminModule],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }

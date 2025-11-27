@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useState } from 'react';
 
 const Layout = () => {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
@@ -71,15 +71,36 @@ const Layout = () => {
             >
               <span>💳</span> Hóa đơn
             </Link>
+            {user?.role === 'ADMIN' && (
+              <Link
+                to="/admin"
+                onClick={() => setMobileMenuOpen(false)}
+                className="hover:bg-gray-700 p-3 rounded-lg transition-colors flex items-center gap-2"
+              >
+                <span>🛡️</span> Admin
+              </Link>
+            )}
           </nav>
         </div>
 
-        <button
-          onClick={logout}
-          className="bg-red-600 w-full py-3 rounded-lg hover:bg-red-700 transition-colors font-medium"
-        >
-          Đăng xuất
-        </button>
+        <div className="space-y-3">
+          {user && (
+            <div className="text-sm text-gray-200 bg-gray-900/40 p-3 rounded-lg">
+              <p className="font-semibold">{user.name}</p>
+              <p className="text-xs text-gray-400 break-all">{user.email}</p>
+              <p className="text-xs mt-1 uppercase tracking-wide text-blue-300">{user.role}</p>
+            </div>
+          )}
+          <button
+            onClick={() => {
+              logout();
+              setMobileMenuOpen(false);
+            }}
+            className="bg-red-600 w-full py-3 rounded-lg hover:bg-red-700 transition-colors font-medium"
+          >
+            Đăng xuất
+          </button>
+        </div>
       </aside>
 
       {/* Overlay for mobile */}

@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 
 function Register() {
-  const { setToken } = useAuth();
+  const { setAuth } = useAuth();
   const navigate = useNavigate();
 
   const [name, setName] = useState('');
@@ -17,8 +17,8 @@ function Register() {
     setErr('');
     try {
       const res = await authApi.register(name, email, password);
-      // backend trả về { access_token, user }
-      setToken(res.data.access_token);
+      const { access_token, user } = res.data;
+      setAuth(access_token, user);
       navigate('/');
     } catch (e: any) {
       setErr(e?.response?.data?.message || 'Đăng ký thất bại');

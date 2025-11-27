@@ -19,25 +19,50 @@ export class AuthService {
             data: { name: dto.name, email: dto.email, password: hash },
         });
 
-        const access_token = await this.signToken(user.id, user.email, user.name);
-        return { access_token, user: { id: user.id, name: user.name, email: user.email } };
+        const access_token = await this.signToken(user.id, user.email, user.name, 'USER');
+        return { access_token, user: { id: user.id, name: user.name, email: user.email, role: 'USER' } };
     }
 
     async login(dto: LoginDto) {
         const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
-        if (!user) throw new UnauthorizedException('Sai email hoặc mật khẩu');
+        if (user) {
+            const ok = await bcrypt.compare(dto.password, user.password);
+            if (!ok) throw new UnauthorizedException('Sai email hoặc mật khẩu');
+            const access_token = await this.signToken(user.id, user.email, user.name, 'USER');
+            return { access_token, user: { id: user.id, name: user.name, email: user.email, role: 'USER' } };
+        }
 
-        const ok = await bcrypt.compare(dto.password, user.password);
+        const admin = await this.prisma.admin.findFirst({
+            where: {
+                OR: [
+                    { email: dto.email },
+                    { admin_login_id: dto.email },
+                ],
+            },
+        });
+        if (!admin) throw new UnauthorizedException('Sai email hoặc mật khẩu');
+
+        const adminPasswordHash = (admin as any).password as string | undefined;
+        if (!adminPasswordHash) throw new UnauthorizedException('Sai email hoặc mật khẩu');
+        const ok = await bcrypt.compare(dto.password, adminPasswordHash);
         if (!ok) throw new UnauthorizedException('Sai email hoặc mật khẩu');
 
-        const access_token = await this.signToken(user.id, user.email, user.name);
-        return { access_token, user: { id: user.id, name: user.name, email: user.email } };
+        const access_token = await this.signToken(-admin.id, admin.email ?? admin.admin_login_id, 'Administrator', 'ADMIN');
+        return {
+            access_token,
+            user: {
+                id: -admin.id,
+                name: 'Administrator',
+                email: admin.email ?? admin.admin_login_id,
+                role: 'ADMIN',
+            },
+        };
     }
 
-    private async signToken(sub: number, email: string, name: string) {
+    private async signToken(sub: number, email: string, name: string, role: 'USER' | 'ADMIN') {
         return this.jwt.signAsync(
-            { sub, email, name },
-            { secret: process.env.JWT_SECRET , expiresIn:( process.env.JWT_EXPIRES_IN  || '7d') as any },
+            { sub, email, name, role },
+            { secret: process.env.JWT_SECRET, expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as any },
         );
     }
 }

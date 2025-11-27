@@ -35,14 +35,29 @@ export class CollectionsService {
 
   /** Kiểm tra đã có bill trong cùng kỳ hay chưa (idempotent) */
   private async findExistingBillForPeriod(contractId: number, start: Date, end: Date) {
-    return this.prisma.roomFeeCollection.findFirst({
+    // Kiểm tra tất cả hóa đơn của contract này
+    // Nếu charge_date nằm trong khoảng start-end thì coi như đã có hóa đơn cho kỳ này
+    // Nếu charge_date là null, cần kiểm tra thêm bằng cách so sánh với tất cả hóa đơn
+    const bills = await this.prisma.roomFeeCollection.findMany({
       where: {
         tenant_contract_id: contractId,
-        // charge_date trong tháng đó (nếu bạn thích có cột period thì đơn giản hơn)
-        charge_date: { gte: start, lte: end },
       },
       orderBy: { id: 'desc' },
     });
+
+    // Kiểm tra xem có hóa đơn nào có charge_date trong khoảng start-end không
+    const billInPeriod = bills.find(
+      (b) => b.charge_date && b.charge_date >= start && b.charge_date <= end,
+    );
+
+    if (billInPeriod) {
+      return billInPeriod;
+    }
+
+    // Nếu không tìm thấy bằng charge_date, kiểm tra xem có hóa đơn nào có charge_date null
+    // và không có hóa đơn nào khác trong khoảng start-end
+    // Trong trường hợp này, cho phép tạo hóa đơn mới cho kỳ khác
+    return null;
   }
 
   /** Tạo bill cho 1 hợp đồng theo kỳ YYYY-MM */
@@ -100,17 +115,21 @@ export class CollectionsService {
       orderBy: { id: 'desc' },
     });
 
-    // Tìm hóa đơn có charge_date trước tháng hiện tại (hoặc null nhưng là hóa đơn cũ nhất)
+    // Tìm hóa đơn có charge_date trước tháng hiện tại
+    // Ưu tiên tìm hóa đơn có charge_date rõ ràng (không null) và trước tháng hiện tại
     let previousBill = allBills.find(
       (b) => b.charge_date && b.charge_date < start,
     );
 
-    // Nếu không tìm thấy, lấy hóa đơn mới nhất (có thể charge_date null)
+    // Nếu không tìm thấy hóa đơn có charge_date rõ ràng, tìm hóa đơn có charge_date null
+    // nhưng chỉ dùng nếu đó là hóa đơn duy nhất hoặc là hóa đơn mới nhất
     if (!previousBill && allBills.length > 0) {
-      const latestBill = allBills[0];
-      // Chỉ dùng nếu thực sự là hóa đơn trước (charge_date null hoặc trước tháng hiện tại)
-      if (!latestBill.charge_date || latestBill.charge_date < start) {
-        previousBill = latestBill;
+      // Tìm hóa đơn có charge_date null và có chỉ số điện/nước
+      const billWithNullDate = allBills.find(
+        (b) => !b.charge_date && (b.electricity_num_after !== null || b.water_number_after !== null),
+      );
+      if (billWithNullDate) {
+        previousBill = billWithNullDate;
       }
     }
 
@@ -198,9 +217,17 @@ export class CollectionsService {
     try {
       created = await this.prisma.$transaction(async (tx) => {
         // kiểm tra lần nữa idempotent trong transaction
-        const dup = await tx.roomFeeCollection.findFirst({
-          where: { tenant_contract_id: contract.id, charge_date: { gte: start, lte: end } },
+        // Lấy tất cả hóa đơn của contract và kiểm tra trong code
+        const allBillsInTx = await tx.roomFeeCollection.findMany({
+          where: { tenant_contract_id: contract.id },
+          orderBy: { id: 'desc' },
         });
+
+        // Kiểm tra xem có hóa đơn nào có charge_date trong khoảng start-end không
+        const dup = allBillsInTx.find(
+          (b) => b.charge_date && b.charge_date >= start && b.charge_date <= end,
+        );
+
         if (dup) {
           console.log('[CollectionsService] Found duplicate bill:', dup.id);
           return dup;
@@ -378,6 +405,41 @@ export class CollectionsService {
     });
 
     return this.toSafeBill(res);
+  }
+
+  /** Xóa hóa đơn */
+  async remove(userId: number, id: number) {
+    // Kiểm tra hóa đơn có tồn tại và thuộc user không
+    const bill = await this.prisma.roomFeeCollection.findUnique({
+      where: { id },
+      include: {
+        tenant_contract: {
+          include: {
+            apartment_room: { include: { apartment: true } },
+          },
+        },
+      },
+    });
+
+    if (!bill) {
+      throw new NotFoundException('Hóa đơn không tồn tại');
+    }
+
+    if (bill.tenant_contract.apartment_room.apartment.user_id !== userId) {
+      throw new ForbiddenException('Bạn không có quyền xóa hóa đơn này');
+    }
+
+    // Xóa lịch sử thanh toán trước (cascade)
+    await this.prisma.roomFeeCollectionHistory.deleteMany({
+      where: { room_fee_collection_id: id },
+    });
+
+    // Xóa hóa đơn
+    await this.prisma.roomFeeCollection.delete({
+      where: { id },
+    });
+
+    return { ok: true, message: 'Đã xóa hóa đơn thành công' };
   }
 
   /** Chuyển BigInt -> string để JSON không lỗi */

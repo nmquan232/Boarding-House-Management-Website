@@ -10,6 +10,7 @@ import Tenants from './pages/Tenants';
 import Contracts from './pages/Contracts';
 import Collections from './pages/Collections';
 import Register from './pages/Register';
+import Admin from './pages/Admin';
 function App() {
   return (
     <AuthProvider>
@@ -32,6 +33,7 @@ function App() {
             <Route path="tenants" element={<Tenants />} />
             <Route path="contracts" element={<Contracts />} />
             <Route path="collections" element={<Collections />} />
+            <Route path="admin" element={<Admin />} />
           </Route>
         </Routes>
       </BrowserRouter>

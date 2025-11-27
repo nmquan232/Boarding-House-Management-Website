@@ -6,6 +6,7 @@ import {
   getBillDetail,
   payBill,
   getBillsList,
+  deleteBill,
   type Bill,
   type BillListItem,
 } from '../api/collectionsApi';
@@ -435,26 +436,48 @@ export default function Collections() {
                             </span>
                           </td>
                           <td className="p-2 md:p-3 text-center">
-                            <button
-                              className="text-blue-600 hover:text-blue-800 text-xs md:text-sm px-2 py-1 rounded hover:bg-blue-50 transition"
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                try {
-                                  const detail = await getBillDetail(b.id);
-                                  setBill(detail);
-                                } catch (err: any) {
-                                  console.error('View bill detail error:', err?.response?.data || err);
-                                  const errorMsg = err?.response?.data?.message || err?.message || 'Không thể tải chi tiết hóa đơn';
-                                  if (err?.response?.status === 404) {
-                                    alert(`Hóa đơn #${b.id} không tồn tại hoặc không thuộc quyền của bạn`);
-                                  } else {
+                            <div className="flex gap-2 justify-center items-center">
+                              <button
+                                className="text-blue-600 hover:text-blue-800 text-xs md:text-sm px-2 py-1 rounded hover:bg-blue-50 transition"
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  try {
+                                    const detail = await getBillDetail(b.id);
+                                    setBill(detail);
+                                  } catch (err: any) {
+                                    console.error('View bill detail error:', err?.response?.data || err);
+                                    const errorMsg = err?.response?.data?.message || err?.message || 'Không thể tải chi tiết hóa đơn';
+                                    if (err?.response?.status === 404) {
+                                      alert(`Hóa đơn #${b.id} không tồn tại hoặc không thuộc quyền của bạn`);
+                                    } else {
+                                      alert(`Lỗi: ${errorMsg}`);
+                                    }
+                                  }
+                                }}
+                              >
+                                Chi tiết
+                              </button>
+                              <button
+                                className="text-red-600 hover:text-red-800 text-xs md:text-sm px-2 py-1 rounded hover:bg-red-50 transition"
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  if (!confirm(`Bạn có chắc chắn muốn xóa hóa đơn #${b.id}?`)) {
+                                    return;
+                                  }
+                                  try {
+                                    await deleteBill(b.id);
+                                    alert('Đã xóa hóa đơn thành công');
+                                    loadBills();
+                                  } catch (err: any) {
+                                    console.error('Delete bill error:', err?.response?.data || err);
+                                    const errorMsg = err?.response?.data?.message || err?.message || 'Không thể xóa hóa đơn';
                                     alert(`Lỗi: ${errorMsg}`);
                                   }
-                                }
-                              }}
-                            >
-                              Chi tiết
-                            </button>
+                                }}
+                              >
+                                Xóa
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
