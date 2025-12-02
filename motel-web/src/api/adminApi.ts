@@ -5,6 +5,7 @@ export type AdminUser = {
     name: string;
     email: string;
     role: 'USER' | 'ADMIN';
+    is_admin: boolean;
     apartments_count: number;
     rooms_count: number;
 };
@@ -28,6 +29,11 @@ export async function resetUserPassword(id: number, newPassword?: string) {
 export async function deleteUserAccount(id: number) {
     const res = await axiosClient.delete(`/admin/users/${id}`);
     return res.data as { ok: boolean };
+}
+
+export async function updateUserAdminRole(id: number, isAdmin: boolean) {
+    const res = await axiosClient.put(`/admin/users/${id}/admin`, { isAdmin });
+    return res.data as { id: number; is_admin: boolean; message: string };
 }
 
 export type MonthlyCostTemplate = {

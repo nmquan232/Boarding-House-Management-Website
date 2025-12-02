@@ -15,6 +15,8 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AdminGuard } from '../auth/guards/admin.guard';
 import { ResetPasswordDto } from './dto/reset-password.dto.js';
 import { UpsertMonthlyCostDto } from './dto/upsert-monthly-cost.dto.js';
+import { UpdateUserRoleDto } from './dto/update-user-role.dto.js';
+import { User } from '../common/decorators/user.decorator';
 
 @UseGuards(JwtAuthGuard, AdminGuard)
 @Controller('admin')
@@ -36,6 +38,15 @@ export class AdminController {
         @Body() dto: ResetPasswordDto,
     ) {
         return this.admin.resetUserPassword(id, dto);
+    }
+
+    @Put('users/:id/admin')
+    updateUserRole(
+        @Param('id', ParseIntPipe) id: number,
+        @Body() dto: UpdateUserRoleDto,
+        @User() user: { userId: number },
+    ) {
+        return this.admin.updateUserAdminRole(id, dto.isAdmin, user.userId);
     }
 
     @Delete('users/:id')

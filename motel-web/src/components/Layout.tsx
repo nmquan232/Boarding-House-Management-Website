@@ -71,6 +71,13 @@ const Layout = () => {
             >
               <span>💳</span> Hóa đơn
             </Link>
+            <Link
+              to="/profile"
+              onClick={() => setMobileMenuOpen(false)}
+              className="hover:bg-gray-700 p-3 rounded-lg transition-colors flex items-center gap-2"
+            >
+              <span>👤</span> Hồ sơ
+            </Link>
             {user?.role === 'ADMIN' && (
               <Link
                 to="/admin"

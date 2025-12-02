@@ -11,6 +11,7 @@ import {
     createMonthlyCostTemplate,
     updateMonthlyCostTemplate,
     deleteMonthlyCostTemplate,
+    updateUserAdminRole,
     type AdminUser,
     type MonthlyCostTemplate,
 } from '../api/adminApi';
@@ -65,6 +66,19 @@ const Admin = () => {
     });
 
     const isAdmin = user?.role === 'ADMIN';
+
+    const buttonBase =
+        'inline-flex items-center justify-center gap-2 rounded-lg text-sm font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-offset-2';
+    const primaryButton = `${buttonBase} px-4 py-2 bg-blue-600 text-white hover:bg-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed`;
+    const outlineButton = `${buttonBase} px-4 py-2 border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:ring-gray-300`;
+    const ghostButton = `${buttonBase} px-3 py-1 border border-gray-200 bg-white text-gray-700 hover:bg-gray-100 focus:ring-gray-200`;
+    const actionButton = `${buttonBase} px-3 py-1 text-xs rounded-full focus:ring-offset-1`;
+    const actionBlue = `${actionButton} bg-blue-50 text-blue-700 hover:bg-blue-100 focus:ring-blue-200`;
+    const actionPurple = `${actionButton} bg-purple-50 text-purple-700 hover:bg-purple-100 focus:ring-purple-200`;
+    const actionRed = `${actionButton} bg-red-50 text-red-700 hover:bg-red-100 focus:ring-red-200`;
+    const tabButton = `${buttonBase} px-4 py-2 border font-semibold`;
+    const tabActive = `${tabButton} bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-200 focus:ring-blue-500`;
+    const tabInactive = `${tabButton} bg-white text-gray-700 border-gray-200 hover:bg-gray-50 focus:ring-gray-200`;
 
     useEffect(() => {
         if (!isAdmin) return;
@@ -151,6 +165,19 @@ const Admin = () => {
         }
     };
 
+    const handleToggleAdmin = async (target: AdminUser) => {
+        const nextState = !target.is_admin;
+        const actionText = nextState ? 'cấp quyền admin cho' : 'gỡ quyền admin của';
+        if (!window.confirm(`Bạn có chắc chắn muốn ${actionText} ${target.email}?`)) return;
+        try {
+            const res = await updateUserAdminRole(target.id, nextState);
+            alert(res.message || 'Cập nhật quyền thành công');
+            loadUsers(usersData.page, usersData.take, userSearch);
+        } catch (error: any) {
+            alert(error?.response?.data?.message || 'Không thể cập nhật quyền');
+        }
+    };
+
     const handleFeeSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!feeForm.name.trim()) {
@@ -180,15 +207,52 @@ const Admin = () => {
         }
     };
 
-    const formattedChartData = useMemo(
-        () =>
-            chartData.map((item) => ({
+    const formattedChartData = useMemo(() => {
+        let cumulativeDebt = 0;
+        return chartData.map((item) => {
+            const total = Number(item.total_price);
+            const monthlyDebt = Number(item.total_debt);
+            cumulativeDebt += monthlyDebt;
+            return {
                 month: item.month,
-                total: Number(item.total_price),
-                debt: Number(item.total_debt),
-            })),
-        [chartData],
-    );
+                total,
+                debt: cumulativeDebt,
+                monthlyDebt,
+            };
+        });
+    }, [chartData]);
+
+    const ChartTooltip = ({ active, payload }: { active?: boolean; payload?: any[] }) => {
+        if (!active || !payload || payload.length === 0) return null;
+        return (
+            <div className="rounded-xl border border-gray-200 bg-white/90 px-4 py-3 shadow-lg backdrop-blur-sm">
+                <p className="text-xs uppercase tracking-wide text-gray-500">{payload[0].payload.month}</p>
+                {payload.map((entry) => {
+                    const isDebt = entry.dataKey === 'debt';
+                    return (
+                        <div key={entry.dataKey} className="mt-1 flex flex-col gap-0.5 text-sm font-medium text-gray-700">
+                            <div className="flex items-center gap-2">
+                                <span
+                                    className="inline-block h-2 w-2 rounded-full"
+                                    style={{ backgroundColor: entry.color }}
+                                />
+                                {isDebt ? 'Dư nợ tích lũy:' : 'Tổng tiền:'}
+                                <span className="text-gray-900">
+                                    {Number(entry.value).toLocaleString('vi-VN')}
+                                    <span className="text-xs text-gray-500 ml-1">₫</span>
+                                </span>
+                            </div>
+                            {isDebt && (
+                                <span className="text-xs font-normal text-gray-500">
+                                    +{Number(entry.payload.monthlyDebt ?? 0).toLocaleString('vi-VN')}₫ trong tháng
+                                </span>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    };
 
     if (!isAdmin) return <Navigate to="/" replace />;
 
@@ -199,8 +263,7 @@ const Admin = () => {
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab as typeof activeTab)}
-                        className={`px-4 py-2 rounded-lg border transition ${activeTab === tab ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300'
-                            }`}
+                        className={activeTab === tab ? tabActive : tabInactive}
                     >
                         {tab === 'overview' && 'Tổng quan'}
                         {tab === 'users' && 'Người dùng'}
@@ -248,47 +311,92 @@ const Admin = () => {
                             )}
                     </section>
 
-                    <section className="bg-white rounded-2xl shadow p-5">
-                        <div className="flex flex-wrap items-end gap-4 mb-4">
+                    <section className="rounded-2xl border border-gray-100 bg-gradient-to-br from-white via-blue-50 to-white p-5 shadow-xl shadow-blue-100/50">
+                        <div className="mb-5 flex flex-wrap items-center gap-4">
                             <div>
-                                <label className="block text-sm text-gray-600">Từ tháng</label>
-                                <input
-                                    type="month"
-                                    value={chartParams.from || ''}
-                                    onChange={(e) => setChartParams({ ...chartParams, from: e.target.value })}
-                                    className="border rounded px-3 py-2"
-                                />
+                                <p className="text-xs uppercase tracking-wide text-blue-600">Biểu đồ doanh thu</p>
+                                <h3 className="text-2xl font-bold text-gray-900">Tổng quan thu và dư nợ</h3>
                             </div>
-                            <div>
-                                <label className="block text-sm text-gray-600">Đến tháng</label>
-                                <input
-                                    type="month"
-                                    value={chartParams.to || ''}
-                                    onChange={(e) => setChartParams({ ...chartParams, to: e.target.value })}
-                                    className="border rounded px-3 py-2"
-                                />
+                            <div className="flex flex-wrap gap-3 ml-auto">
+                                <div>
+                                    <label className="block text-sm text-gray-600">Từ tháng</label>
+                                    <input
+                                        type="month"
+                                        value={chartParams.from || ''}
+                                        onChange={(e) => setChartParams({ ...chartParams, from: e.target.value })}
+                                        className="rounded-xl border border-gray-200 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm text-gray-600">Đến tháng</label>
+                                    <input
+                                        type="month"
+                                        value={chartParams.to || ''}
+                                        onChange={(e) => setChartParams({ ...chartParams, to: e.target.value })}
+                                        className="rounded-xl border border-gray-200 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                                    />
+                                </div>
+                                <button
+                                    onClick={() => loadChartData(chartParams)}
+                                    className={primaryButton}
+                                    disabled={chartLoading}
+                                >
+                                    {chartLoading ? 'Đang tải...' : 'Áp dụng'}
+                                </button>
                             </div>
-                            <button
-                                onClick={() => loadChartData(chartParams)}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg"
-                                disabled={chartLoading}
-                            >
-                                Xem biểu đồ
-                            </button>
                         </div>
                         {chartLoading ? (
-                            <p>Đang tải biểu đồ...</p>
+                            <div className="flex h-64 items-center justify-center text-gray-500">Đang tải biểu đồ...</div>
                         ) : (
-                            <div className="w-full h-80">
+                            <div className="w-full h-80 rounded-2xl bg-white/70 p-3 shadow-inner shadow-blue-100">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <LineChart data={formattedChartData}>
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis dataKey="month" />
-                                        <YAxis />
-                                        <Tooltip formatter={(value: number) => value.toLocaleString('vi-VN') + '₫'} />
-                                        <Legend />
-                                        <Line type="monotone" dataKey="total" name="Tổng tiền" stroke="#2563eb" />
-                                        <Line type="monotone" dataKey="debt" name="Dư nợ" stroke="#dc2626" />
+                                    <LineChart data={formattedChartData} margin={{ top: 20, right: 20, left: 0, bottom: 10 }}>
+                                        <defs>
+                                            <linearGradient id="totalGradient" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="0%" stopColor="#2563eb" stopOpacity={0.4} />
+                                                <stop offset="100%" stopColor="#2563eb" stopOpacity={0.05} />
+                                            </linearGradient>
+                                            <linearGradient id="debtGradient" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="0%" stopColor="#dc2626" stopOpacity={0.4} />
+                                                <stop offset="100%" stopColor="#dc2626" stopOpacity={0.05} />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="4 4" stroke="#e2e8f0" />
+                                        <XAxis
+                                            dataKey="month"
+                                            tick={{ fill: '#64748b', fontSize: 12 }}
+                                            tickLine={false}
+                                            axisLine={{ stroke: '#e2e8f0' }}
+                                        />
+                                        <YAxis
+                                            tick={{ fill: '#64748b', fontSize: 12 }}
+                                            tickFormatter={(value) => `${(value / 1_000_000).toFixed(0)}tr`}
+                                            tickLine={false}
+                                            axisLine={{ stroke: '#e2e8f0' }}
+                                        />
+                                        <Tooltip content={<ChartTooltip />} />
+                                        <Legend
+                                            formatter={(value) => (value === 'total' ? 'Tổng tiền' : 'Dư nợ')}
+                                            wrapperStyle={{ paddingTop: 10 }}
+                                        />
+                                        <Line
+                                            type="monotone"
+                                            dataKey="total"
+                                            stroke="#2563eb"
+                                            strokeWidth={3}
+                                            dot={{ r: 4, fill: '#2563eb' }}
+                                            activeDot={{ r: 6, fill: '#1d4ed8' }}
+                                            name="total"
+                                        />
+                                        <Line
+                                            type="monotone"
+                                            dataKey="debt"
+                                            stroke="#dc2626"
+                                            strokeWidth={3}
+                                            dot={{ r: 4, fill: '#dc2626' }}
+                                            activeDot={{ r: 6, fill: '#b91c1c' }}
+                                            name="debt"
+                                        />
                                     </LineChart>
                                 </ResponsiveContainer>
                             </div>
@@ -307,7 +415,7 @@ const Admin = () => {
                             onChange={(e) => setUserSearch(e.target.value)}
                             className="border rounded px-3 py-2 flex-1 min-w-[200px]"
                         />
-                        <button className="px-4 py-2 bg-blue-600 text-white rounded-lg" onClick={() => loadUsers(1, usersData.take, userSearch)}>
+                        <button className={primaryButton} onClick={() => loadUsers(1, usersData.take, userSearch)}>
                             Tìm kiếm
                         </button>
                     </div>
@@ -323,6 +431,7 @@ const Admin = () => {
                                         <th className="p-3">Email</th>
                                         <th className="p-3">Tòa nhà</th>
                                         <th className="p-3">Phòng</th>
+                                        <th className="p-3">Quyền</th>
                                         <th className="p-3 text-center">Hành động</th>
                                     </tr>
                                 </thead>
@@ -333,11 +442,27 @@ const Admin = () => {
                                             <td className="p-3">{item.email}</td>
                                             <td className="p-3">{item.apartments_count}</td>
                                             <td className="p-3">{item.rooms_count}</td>
-                                            <td className="p-3 text-center space-x-2">
-                                                <button className="text-blue-600" onClick={() => handleResetPassword(item)}>
+                                            <td className="p-3">
+                                                <span
+                                                    className={`px-2 py-1 rounded-full text-xs font-semibold ${item.is_admin
+                                                        ? 'bg-green-100 text-green-700'
+                                                        : 'bg-gray-100 text-gray-700'
+                                                        }`}
+                                                >
+                                                    {item.is_admin ? 'ADMIN' : 'USER'}
+                                                </span>
+                                            </td>
+                                            <td className="p-3 text-center flex flex-wrap gap-2 justify-center">
+                                                <button className={actionBlue} onClick={() => handleResetPassword(item)}>
                                                     Reset mật khẩu
                                                 </button>
-                                                <button className="text-red-600" onClick={() => handleDeleteUser(item)}>
+                                                <button
+                                                    className={actionPurple}
+                                                    onClick={() => handleToggleAdmin(item)}
+                                                >
+                                                    {item.is_admin ? 'Gỡ quyền admin' : 'Cấp quyền admin'}
+                                                </button>
+                                                <button className={actionRed} onClick={() => handleDeleteUser(item)}>
                                                     Xóa
                                                 </button>
                                             </td>
@@ -349,7 +474,7 @@ const Admin = () => {
                     )}
                     <div className="flex items-center justify-between">
                         <button
-                            className="px-3 py-1 border rounded disabled:opacity-50"
+                            className={ghostButton}
                             disabled={usersData.page <= 1}
                             onClick={() => loadUsers(usersData.page - 1, usersData.take, userSearch)}
                         >
@@ -359,7 +484,7 @@ const Admin = () => {
                             Trang {usersData.page}/{Math.max(1, usersData.pages)}
                         </span>
                         <button
-                            className="px-3 py-1 border rounded disabled:opacity-50"
+                            className={ghostButton}
                             disabled={usersData.page >= usersData.pages}
                             onClick={() => loadUsers(usersData.page + 1, usersData.take, userSearch)}
                         >
@@ -387,9 +512,9 @@ const Admin = () => {
                                         {feesData.items.map((fee) => (
                                             <tr key={fee.id} className="border-b hover:bg-gray-50">
                                                 <td className="p-3 font-medium">{fee.name}</td>
-                                                <td className="p-3 text-center space-x-2">
+                                                <td className="p-3 text-center flex flex-wrap gap-2 justify-center">
                                                     <button
-                                                        className="text-blue-600"
+                                                        className={actionBlue}
                                                         onClick={() =>
                                                             setFeeForm({
                                                                 id: fee.id,
@@ -399,7 +524,7 @@ const Admin = () => {
                                                     >
                                                         Sửa
                                                     </button>
-                                                    <button className="text-red-600" onClick={() => handleDeleteFee(fee)}>
+                                                    <button className={actionRed} onClick={() => handleDeleteFee(fee)}>
                                                         Xóa
                                                     </button>
                                                 </td>
@@ -411,7 +536,7 @@ const Admin = () => {
                         )}
                         <div className="flex items-center justify-between mt-4">
                             <button
-                                className="px-3 py-1 border rounded disabled:opacity-50"
+                                className={ghostButton}
                                 disabled={feesData.page <= 1}
                                 onClick={() => loadFees(feesData.page - 1, feesData.take)}
                             >
@@ -421,7 +546,7 @@ const Admin = () => {
                                 Trang {feesData.page}/{Math.max(1, feesData.pages)}
                             </span>
                             <button
-                                className="px-3 py-1 border rounded disabled:opacity-50"
+                                className={ghostButton}
                                 disabled={feesData.page >= feesData.pages}
                                 onClick={() => loadFees(feesData.page + 1, feesData.take)}
                             >
@@ -443,13 +568,13 @@ const Admin = () => {
                                 />
                             </div>
                             <div className="flex gap-3">
-                                <button type="submit" className="flex-1 bg-blue-600 text-white py-2 rounded-lg">
+                                <button type="submit" className={`${primaryButton} flex-1`}>
                                     Lưu
                                 </button>
                                 {feeForm.id && (
                                     <button
                                         type="button"
-                                        className="px-4 py-2 rounded-lg border"
+                                        className={`${outlineButton} flex-1`}
                                         onClick={() => setFeeForm({ id: undefined, name: '' })}
                                     >
                                         Hủy

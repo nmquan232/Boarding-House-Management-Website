@@ -76,14 +76,18 @@ export class AdminService {
         }
 
         return {
-            items: users.map((user) => ({
-                id: user.id,
-                name: user.name,
-                email: user.email,
-                role: 'USER',
-                apartments_count: apartmentsByUser[user.id] || 0,
-                rooms_count: roomsByUser[user.id] || 0,
-            })),
+            items: users.map((user) => {
+                const isAdmin = Boolean((user as any).is_admin);
+                return {
+                    id: user.id,
+                    name: user.name,
+                    email: user.email,
+                    role: isAdmin ? 'ADMIN' : 'USER',
+                    apartments_count: apartmentsByUser[user.id] || 0,
+                    rooms_count: roomsByUser[user.id] || 0,
+                    is_admin: isAdmin,
+                };
+            }),
             total,
             page,
             take,
@@ -115,6 +119,26 @@ export class AdminService {
         });
 
         return { userId, newPassword };
+    }
+
+    async updateUserAdminRole(userId: number, isAdmin: boolean, actingUserId: number) {
+        const user = await this.prisma.user.findUnique({ where: { id: userId } });
+        if (!user) throw new NotFoundException('User không tồn tại');
+
+        if (actingUserId > 0 && user.id === actingUserId) {
+            throw new BadRequestException('Không thể thay đổi quyền của chính bạn');
+        }
+
+        await this.prisma.user.update({
+            where: { id: userId },
+            data: { is_admin: isAdmin } as any,
+        });
+
+        return {
+            id: user.id,
+            is_admin: isAdmin,
+            message: `Đã ${isAdmin ? 'cấp' : 'gỡ'} quyền admin cho ${user.email}`,
+        };
     }
 
     async removeUser(userId: number) {

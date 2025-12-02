@@ -41,10 +41,10 @@ const Login = () => {
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email hoặc Login ID</label>
             <input
-              type="email"
-              placeholder="Nhập email của bạn"
+              type="text"
+              placeholder="Nhập email hoặc login ID"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full text-gray-700 p-3 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition shadow-sm"

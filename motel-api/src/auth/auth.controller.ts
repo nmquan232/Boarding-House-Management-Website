@@ -2,12 +2,13 @@ import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { User } from '../common/decorators/user.decorator';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private auth: AuthService) {}
+  constructor(private auth: AuthService) { }
 
   @Post('register')
   register(@Body() dto: RegisterDto) {
@@ -23,5 +24,14 @@ export class AuthController {
   @Get('me')
   me(@User() user: { userId: number; email: string; name: string; role: string }) {
     return { user };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('change-password')
+  changePassword(
+    @User() user: { userId: number; email: string; name: string; role: string },
+    @Body() dto: ChangePasswordDto,
+  ) {
+    return this.auth.changePassword(user.userId, user.role, dto);
   }
 }

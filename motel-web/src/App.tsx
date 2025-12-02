@@ -11,6 +11,7 @@ import Contracts from './pages/Contracts';
 import Collections from './pages/Collections';
 import Register from './pages/Register';
 import Admin from './pages/Admin';
+import Profile from './pages/Profile';
 function App() {
   return (
     <AuthProvider>
@@ -34,6 +35,7 @@ function App() {
             <Route path="contracts" element={<Contracts />} />
             <Route path="collections" element={<Collections />} />
             <Route path="admin" element={<Admin />} />
+            <Route path="profile" element={<Profile />} />
           </Route>
         </Routes>
       </BrowserRouter>

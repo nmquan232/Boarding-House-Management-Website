@@ -6,4 +6,7 @@ export const authApi = {
 
   register: (name: string, email: string, password: string) =>
     axiosClient.post('/auth/register', { name, email, password }),
+
+  changePassword: (oldPassword: string, newPassword: string) =>
+    axiosClient.post('/auth/change-password', { oldPassword, newPassword }),
 };
