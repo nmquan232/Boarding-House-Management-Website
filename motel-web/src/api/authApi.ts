@@ -9,4 +9,7 @@ export const authApi = {
 
   changePassword: (oldPassword: string, newPassword: string) =>
     axiosClient.post('/auth/change-password', { oldPassword, newPassword }),
+
+  forgotPassword: (identifier: string) =>
+    axiosClient.post('/auth/forgot-password', { identifier }),
 };

@@ -2,9 +2,11 @@ import { Injectable, ConflictException, UnauthorizedException, NotFoundException
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
 
 
 @Injectable()
@@ -62,6 +64,52 @@ export class AuthService {
         };
     }
 
+    async forgotPassword(dto: ForgotPasswordDto) {
+        const identifier = dto.identifier.trim();
+        if (!identifier) {
+            throw new BadRequestException('Email hoặc login ID không hợp lệ');
+        }
+
+        const newPassword = this.generateRandomPassword();
+        const hash = await bcrypt.hash(newPassword, 10);
+
+        const user = await this.prisma.user.findUnique({ where: { email: identifier } });
+        if (user) {
+            await this.prisma.user.update({
+                where: { id: user.id },
+                data: { password: hash },
+            });
+            return {
+                message: 'Đã tạo mật khẩu mới cho tài khoản người dùng',
+                email: user.email,
+                newPassword,
+            };
+        }
+
+        const admin = await this.prisma.admin.findFirst({
+            where: {
+                OR: [
+                    { email: identifier },
+                    { admin_login_id: identifier },
+                ],
+            },
+        });
+
+        if (admin) {
+            await this.prisma.$executeRaw`
+                UPDATE "Admin" SET password = ${hash} WHERE id = ${admin.id}
+            `;
+
+            return {
+                message: 'Đã tạo mật khẩu mới cho tài khoản admin',
+                email: admin.email ?? admin.admin_login_id,
+                newPassword,
+            };
+        }
+
+        throw new NotFoundException('Không tìm thấy tài khoản để đặt lại mật khẩu');
+    }
+
     async changePassword(userId: number, role: string, dto: ChangePasswordDto) {
         if (role === 'ADMIN') {
             // Admin đổi mật khẩu
@@ -111,6 +159,14 @@ export class AuthService {
 
             return { message: 'Đổi mật khẩu thành công' };
         }
+    }
+
+    private generateRandomPassword() {
+        return crypto
+            .randomBytes(6)
+            .toString('base64')
+            .replace(/[^a-zA-Z0-9]/g, '')
+            .slice(0, 10);
     }
 
     private async signToken(sub: number, email: string, name: string, role: 'USER' | 'ADMIN') {
